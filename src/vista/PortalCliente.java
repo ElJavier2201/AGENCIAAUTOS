@@ -1,6 +1,5 @@
 package vista;
 
-import com.sun.tools.javac.Main;
 import modelo.Cliente;
 import javax.swing.*;
 import java.awt.*;
@@ -14,11 +13,15 @@ public class PortalCliente extends JFrame {
     private final Cliente cliente;
     private JTabbedPane tabbedPane;
 
-    public PortalCliente() {
+    public PortalCliente(Cliente cliente) {// ✅ CORRECCIÓN: Validación de seguridad
+        if (cliente == null) {
+            throw new IllegalArgumentException("El cliente no puede ser null");
+        }
+
         this.cliente = cliente;
 
         setTitle("Portal de Cliente - " + cliente.getNombre());
-        setSize(1024, 768);
+        setSize(924, 768);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -33,16 +36,12 @@ public class PortalCliente extends JFrame {
         // Pestañas
         tabbedPane = new JTabbedPane();
 
-        // Pestaña 1: Catálogo (Reusamos el panel)
         tabbedPane.addTab("Ver Catálogo", new VehiculosPanel(false));
 
-        // --- CAMBIO CLAVE ---
-        // Ahora usamos el nuevo panel y le pasamos el objeto Cliente
+        // Pestaña 2: Estado de Cuenta
         tabbedPane.addTab("Mi Estado de Cuenta", new ClienteEstadoCuentaPanel(cliente));
-        // --- FIN DEL CAMBIO ---
 
         // Pestaña 3: Mis Compras (Historial)
-        // (Este panel seguiría pendiente de crear)
         tabbedPane.addTab("Mis Compras (Próximamente)", new JPanel());
 
         add(tabbedPane, BorderLayout.CENTER);
@@ -50,11 +49,9 @@ public class PortalCliente extends JFrame {
         // Acción de cerrar sesión
         btnCerrarSesion.addActionListener(e -> {
             dispose();
-            try {
-                Main.main(new String[0]); // Reinicia la aplicación
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
+            SwingUtilities.invokeLater(() -> {
+                new LoginPanel().setVisible(true);
+            });
         });
     }
 }

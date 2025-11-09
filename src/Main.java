@@ -1,6 +1,7 @@
-
 import vista.LoginPanel;
 import vista.PortalCliente;
+import vista.ClienteLoginDialog;
+import modelo.Cliente;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
@@ -16,26 +17,37 @@ public class Main {
             // 1. Preguntar al usuario su rol
             Object[] opciones = {"Soy Empleado (Iniciar Sesión)", "Soy Cliente (Ver Catálogo)"};
             int seleccion = JOptionPane.showOptionDialog(
-                    null, // Componente padre
-                    "Bienvenido a la Agencia de Autos", // Mensaje
-                    "Seleccionar Acceso", // Título
-                    JOptionPane.YES_NO_OPTION, // Tipo de opción
-                    JOptionPane.QUESTION_MESSAGE, // Tipo de mensaje
-                    null, // Icono (default)
-                    opciones, // Texto de los botones
-                    opciones[0] // Botón por defecto
+                    null,
+                    "Bienvenido a la Agencia de Autos",
+                    "Seleccionar Acceso",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    opciones,
+                    opciones[0]
             );
 
             // 2. Abrir la ventana correspondiente
             if (seleccion == 0) {
                 // 0 = Empleado
                 new LoginPanel().setVisible(true);
-            } else if (seleccion == 1) {
-                // 1 = Cliente
-                new PortalCliente().setVisible(true);
-            }
-            // Si el usuario cierra el diálogo (seleccion == -1), la aplicación simplemente termina.
 
+            } else if (seleccion == 1) {
+                ClienteLoginDialog loginDialog = new ClienteLoginDialog(null);
+                loginDialog.setVisible(true);
+
+                // Si el login fue exitoso, abrir el portal
+                Cliente clienteAutenticado = loginDialog.getClienteAutenticado();
+                if (clienteAutenticado != null) {
+                    new PortalCliente(clienteAutenticado).setVisible(true);
+                } else {
+                    // Si canceló o falló el login, volver a mostrar opciones
+                    JOptionPane.showMessageDialog(null,
+                            "No se pudo autenticar. La aplicación se cerrará.",
+                            "Acceso Cancelado",
+                            JOptionPane.WARNING_MESSAGE);
+                }
+            }
         });
     }
 }

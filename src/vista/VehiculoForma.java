@@ -29,11 +29,8 @@ public class VehiculoForma extends JDialog {
     private final VehiculoControlador vehiculoControlador;
     private final MarcaControlador marcaControlador;
     private final ModeloControlador modeloControlador;
-
     private final Vehiculo vehiculo;
     private boolean guardado = false;
-
-    // Componentes del Formulario
     private JComboBox<Marca> cbMarca;
     private JComboBox<Modelo> cbModelo;
     private JSpinner spinnerAnio;
@@ -71,7 +68,6 @@ public class VehiculoForma extends JDialog {
     }
 
     private JPanel crearPanelFormulario() {
-        // ... (Este método no cambia, sigue igual que en la versión anterior)
         JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         cbMarca = new JComboBox<>();
@@ -238,6 +234,7 @@ public class VehiculoForma extends JDialog {
             // --- MODO AGREGAR ---
             Vehiculo v = new Vehiculo();
             // ... (resto de v.set...)
+            assert modeloSeleccionado != null;
             v.setIdModelo(modeloSeleccionado.getIdModelo());
             v.setNumeroSerie(numeroSerie);
             v.setAnio(anio);
