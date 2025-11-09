@@ -36,4 +36,19 @@ public class Pago {
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+
+    public int getNumeroPago() {return numeroPago;}
+    public void setNumeroPago(int numeroPago) {this.numeroPago = numeroPago;}
+
+    public String getReferencia() {return referencia;}
+    public void setReferencia(String referencia) {this.referencia = referencia;}
+
+    public Date getFechaPago() {return fechaPago;}
+    public void setFechaPago(Date fechaPago) {this.fechaPago = fechaPago;}
+
+    public Date getFechaVencimiento() {return fechaVencimiento;}
+    public void setFechaVencimiento(Date fechaVencimiento) {this.fechaVencimiento = fechaVencimiento;}
+
+    public Timestamp getFechaCreacion() {return fechaCreacion;}
+    public void setFechaCreacion(Timestamp fechaCreacion) {this.fechaCreacion = fechaCreacion;}
 }

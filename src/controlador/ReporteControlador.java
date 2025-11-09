@@ -18,7 +18,7 @@ public class ReporteControlador {
     /**
      * Obtiene la lista detallada de ventas.
      */
-    public List<Venta> listarReporteVentas() {
-        return dao.listarVentasDetallado();
+    public List<Venta> listarReporteVentas(java.sql.Date fechaInicio, java.sql.Date fechaFin) {
+        return dao.listarVentasDetallado(fechaInicio, fechaFin);
     }
 }

@@ -18,6 +18,10 @@ public class Factura {
     private String lugarExpedicion;
     private Timestamp fechaCreacion;
 
+    public double getSubtotal() {return subtotal;}
+
+    public void setSubtotal(double subtotal) {this.subtotal = subtotal;}
+
     public Factura() {}
 
     // Getters y Setters (aquí solo algunos como ejemplo, deberías añadir todos)
@@ -32,4 +36,36 @@ public class Factura {
 
     public double getTotal() { return total; }
     public void setTotal(double total) { this.total = total; }
+
+    public Date getFechaFactura() {return fechaFactura;}
+    public void setFechaFactura(Date fechaFactura) {this.fechaFactura = fechaFactura;}
+
+    public double getIva() {return iva;}
+
+    public void setIva(double iva) {this.iva = iva;}
+
+
+    public String getTipoComprobante() {return tipoComprobante;}
+
+    public void setTipoComprobante(String tipoComprobante) {this.tipoComprobante = tipoComprobante;}
+
+    public String getUsoCfdi() {return usoCfdi;}
+
+    public void setUsoCfdi(String usoCfdi) {this.usoCfdi = usoCfdi;}
+
+    public String getFormaPagoSat() {return formaPagoSat;}
+
+    public void setFormaPagoSat(String formaPagoSat) {this.formaPagoSat = formaPagoSat;}
+
+    public String getMetodoPagoSat() {return metodoPagoSat;}
+
+    public void setMetodoPagoSat(String metodoPagoSat) {this.metodoPagoSat = metodoPagoSat;}
+
+    public String getLugarExpedicion() {return lugarExpedicion;}
+
+    public void setLugarExpedicion(String lugarExpedicion) {this.lugarExpedicion = lugarExpedicion;}
+
+    public Timestamp getFechaCreacion() {return fechaCreacion;}
+
+    public void setFechaCreacion(Timestamp fechaCreacion) {this.fechaCreacion = fechaCreacion;}
 }

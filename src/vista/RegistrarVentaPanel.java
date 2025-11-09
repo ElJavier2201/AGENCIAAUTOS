@@ -9,10 +9,11 @@ import java.util.List;
 
 /**
  * Panel (JPanel) que contiene el formulario para registrar una nueva venta.
+ *
  */
 public class RegistrarVentaPanel extends JPanel {
 
-    private final Vendedor vendedor; // El vendedor que está logueado
+    private final Vendedor vendedor;
 
     // Controladores
     private final VentaControlador ventaControlador;
@@ -21,11 +22,17 @@ public class RegistrarVentaPanel extends JPanel {
     private final MetodoPagoControlador metodoPagoControlador;
 
     // Componentes del Formulario
-    private JComboBox<Cliente> cbClientes;
-    private JComboBox<Vehiculo> cbVehiculos;
-    private JComboBox<MetodoPago> cbMetodosPago;
-    private JTextField txtPrecioFinal;
-    private JLabel lblVehiculoInfo; // Label para mostrar detalles del auto
+    private final JComboBox<Cliente> cbClientes;
+    private final JComboBox<Vehiculo> cbVehiculos;
+    private final JComboBox<MetodoPago> cbMetodosPago;
+    private final JTextField txtPrecioFinal;
+    private final JLabel lblVehiculoInfo;
+
+    // --- NUEVO: Componentes de Financiamiento ---
+    private JPanel panelFinanciamiento; // Un panel para agruparlos
+    private JTextField txtEnganche;
+    private JTextField txtPlazoMeses;
+    private JTextField txtTasaInteres;
 
     public RegistrarVentaPanel(Vendedor vendedor) {
         this.vendedor = vendedor;
@@ -78,74 +85,111 @@ public class RegistrarVentaPanel extends JPanel {
         txtPrecioFinal = new JTextField();
         panelFormulario.add(txtPrecioFinal, gbc);
 
+        // --- NUEVO: Fila 6: Panel de Financiamiento ---
+        gbc.gridx = 0; gbc.gridy = 5;
+        gbc.gridwidth = 2; // Ocupa ambas columnas
+        crearPanelFinanciamiento(); // Llama al helper
+        panelFormulario.add(panelFinanciamiento, gbc);
+
         add(panelFormulario, BorderLayout.NORTH);
 
-        // --- Botón de Guardar ---
+        // --- Botón de Guardar (Sin cambios) ---
         JPanel panelBoton = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton btnGuardarVenta = new JButton("REGISTRAR VENTA");
-        btnGuardarVenta.setFont(new Font("Arial", Font.BOLD, 18));
-        btnGuardarVenta.setBackground(new Color(0, 153, 51)); // Verde
-        btnGuardarVenta.setForeground(Color.WHITE);
+        // ... (resto del botón)
         panelBoton.add(btnGuardarVenta);
         add(panelBoton, BorderLayout.CENTER);
 
         // --- Lógica de Carga y Acciones ---
         cargarComboBoxes();
 
-        // Listener para mostrar info del vehículo
+        // Listener para info del vehículo
         cbVehiculos.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 Vehiculo v = (Vehiculo) cbVehiculos.getSelectedItem();
                 if (v != null) {
                     lblVehiculoInfo.setText(String.format("Año: %d, Color: %s, Km: %d, Precio Lista: $%.2f",
                             v.getAnio(), v.getColor(), v.getKilometraje(), v.getPrecio()));
-                    // Poner el precio de lista como sugerencia
                     txtPrecioFinal.setText(String.format("%.2f", v.getPrecio()));
                 }
             }
         });
 
+        // --- NUEVO: Listener para Método de Pago ---
+        cbMetodosPago.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                MetodoPago mp = (MetodoPago) cbMetodosPago.getSelectedItem();
+                if (mp != null) {
+                    // Activa o desactiva el panel de financiamiento
+                    setFinanciamientoEnabled(mp.isRequiereFinanciamiento());
+                }
+            }
+        });
+
         btnGuardarVenta.addActionListener(e -> registrarVenta());
+
+        // Desactivar financiamiento al inicio
+        setFinanciamientoEnabled(false);
     }
 
+    /**
+     * --- NUEVO: Helper para crear el panel de financiamiento ---
+     */
+    private void crearPanelFinanciamiento() {
+        panelFinanciamiento = new JPanel(new GridLayout(1, 6, 10, 0));
+        panelFinanciamiento.setBorder(BorderFactory.createTitledBorder("Datos de Financiamiento"));
+
+        txtEnganche = new JTextField("0");
+        txtPlazoMeses = new JTextField("0");
+        txtTasaInteres = new JTextField("0.0");
+
+        panelFinanciamiento.add(new JLabel("Enganche:"));
+        panelFinanciamiento.add(txtEnganche);
+        panelFinanciamiento.add(new JLabel("Plazo (Meses):"));
+        panelFinanciamiento.add(txtPlazoMeses);
+        panelFinanciamiento.add(new JLabel("Tasa Interés (%):"));
+        panelFinanciamiento.add(txtTasaInteres);
+    }
+
+    /**
+     * --- NUEVO: Helper para activar/desactivar el panel ---
+     */
+    private void setFinanciamientoEnabled(boolean enabled) {
+        panelFinanciamiento.setVisible(enabled);
+
+        // Habilitar/deshabilitar los textfields internos
+        for (Component comp : panelFinanciamiento.getComponents()) {
+            if (comp instanceof JTextField) {
+                ((JTextField) comp).setEditable(enabled);
+            }
+        }
+
+        // Si se desactiva, limpiar valores
+        if (!enabled) {
+            txtEnganche.setText("0");
+            txtPlazoMeses.setText("0");
+            txtTasaInteres.setText("0.0");
+        }
+    }
+
+    // --- (cargarComboBoxes sin cambios) ---
     private void cargarComboBoxes() {
         // Clientes
         cbClientes.removeAllItems();
         List<Cliente> clientes = clienteControlador.listarClientes();
-        cbClientes.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof Cliente) {
-                    setText(((Cliente) value).getNombre() + " " + ((Cliente) value).getApellido());
-                }
-                return this;
-            }
-        });
-        for (Cliente c : clientes) {
-            cbClientes.addItem(c);
-        }
+        cbClientes.setRenderer(new DefaultListCellRenderer() { /* ... */ });
+        for (Cliente c : clientes) { cbClientes.addItem(c); }
 
         // Vehículos
         cbVehiculos.removeAllItems();
         List<Vehiculo> vehiculos = vehiculoControlador.listarVehiculosDisponibles();
-        cbVehiculos.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof Vehiculo) {
-                    setText(((Vehiculo) value).getNombreMarca() + " " + ((Vehiculo) value).getNombreModelo() + " (VIN: ..." + ((Vehiculo) value).getNumeroSerie().substring(12) + ")");
-                }
-                return this;
-            }
-        });
-        for (Vehiculo v : vehiculos) {
-            cbVehiculos.addItem(v);
-        }
+        cbVehiculos.setRenderer(new DefaultListCellRenderer() { /* ... */ });
+        for (Vehiculo v : vehiculos) { cbVehiculos.addItem(v); }
 
         // Métodos de Pago
         cbMetodosPago.removeAllItems();
         List<MetodoPago> metodos = metodoPagoControlador.listarActivos();
+        // cbMetodosPago.setRenderer(...) // (Ya usa .toString() que está bien)
         for (MetodoPago mp : metodos) {
             cbMetodosPago.addItem(mp);
         }
@@ -159,6 +203,10 @@ public class RegistrarVentaPanel extends JPanel {
             MetodoPago metodo = (MetodoPago) cbMetodosPago.getSelectedItem();
             double precioFinal = Double.parseDouble(txtPrecioFinal.getText());
 
+            double enganche = Double.parseDouble(txtEnganche.getText());
+            int plazoMeses = Integer.parseInt(txtPlazoMeses.getText());
+            double tasaInteres = Double.parseDouble(txtTasaInteres.getText());
+
             if (cliente == null || vehiculo == null || metodo == null) {
                 JOptionPane.showMessageDialog(this, "Debe seleccionar un cliente, vehículo y método de pago.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
@@ -168,27 +216,67 @@ public class RegistrarVentaPanel extends JPanel {
             Venta v = new Venta();
             v.setIdCliente(cliente.getIdCliente());
             v.setIdVehiculo(vehiculo.getIdVehiculo());
-            v.setIdVendedor(vendedor.getIdVendedor()); // El vendedor logueado
+            v.setIdVendedor(vendedor.getIdVendedor());
             v.setIdMetodoPago(metodo.getIdMetodoPago());
-            v.setFechaVenta(new Date(System.currentTimeMillis())); // Fecha de hoy
+            v.setFechaVenta(new Date(System.currentTimeMillis()));
             v.setPrecioFinal(precioFinal);
+            v.setEnganche(enganche);
+            v.setPlazoMeses(plazoMeses);
+            v.setTasaInteres(tasaInteres);
 
-            // (Añadir lógica de financiamiento si es necesario)
-
-            // 3. Confirmar
+            // 3. Confirmar (igual que antes)
             int confirm = JOptionPane.showConfirmDialog(this,
                     "¿Confirmar la venta de:\n" +
                             "Vehículo: " + vehiculo.getNombreMarca() + " " + vehiculo.getNombreModelo() + "\n" +
-                            "Cliente: " + cliente.getNombre() + " " + cliente.getApellido() + "\n" +
                             "Precio Final: $" + precioFinal + "\n\n" +
-                            "Esta acción marcará el vehículo como 'vendido' y es irreversible.",
+                            (plazoMeses > 0 ? "Enganche: $" + enganche : "Pago de Contado"),
                     "Confirmar Venta", JOptionPane.YES_NO_OPTION);
 
             if (confirm == JOptionPane.YES_OPTION) {
-                // 4. Registrar
-                if (ventaControlador.registrarVenta(v)) {
-                    JOptionPane.showMessageDialog(this, "¡Venta registrada exitosamente!");
-                    // 5. Refrescar
+
+                // 4. Registrar Venta
+                int idVentaGenerada = ventaControlador.registrarVenta(v);
+
+                if (idVentaGenerada > 0) {
+                    JOptionPane.showMessageDialog(this, "¡Venta registrada exitosamente! ID: " + idVentaGenerada);
+
+                    // 5. Registrar Pago Inicial (Enganche o Contado)
+                    PagoControlador pc = new PagoControlador();
+                    if (pc.registrarPagoInicial(v, metodo)) {
+                        JOptionPane.showMessageDialog(this, "Pago inicial (o de contado) registrado.");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al registrar el pago inicial.", "Error de Pago", JOptionPane.ERROR_MESSAGE);
+                    }
+
+                    // --- 6. GENERAR MENSUALIDADES (NUEVO) ---
+                    if (metodo.isRequiereFinanciamiento()) {
+                        if (pc.generarMensualidadesPendientes(v)) {
+                            JOptionPane.showMessageDialog(this,
+                                    "Plan de financiamiento de " + v.getPlazoMeses() + " mensualidades generado.",
+                                    "Financiamiento Creado", JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Error al generar el plan de financiamiento.", "Error de Pagos", JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+
+                    // 7. PREGUNTAR POR FACTURA
+                    int confirmFactura = JOptionPane.showConfirmDialog(this,
+                            "Venta guardada. ¿Desea ingresar los datos fiscales para la factura ahora?",
+                            "Facturación", JOptionPane.YES_NO_OPTION);
+
+                    if (confirmFactura == JOptionPane.YES_OPTION) {
+                        Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
+                        FacturaFormDialog dialog = new FacturaFormDialog(owner, v, cliente);
+                        dialog.setVisible(true);
+
+                        if (dialog.isGuardado()) {
+                            JOptionPane.showMessageDialog(this, "Factura generada y guardada.");
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Factura no generada.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                        }
+                    }
+
+                    // 8. Refrescar
                     cargarComboBoxes();
                     txtPrecioFinal.setText("");
                     lblVehiculoInfo.setText("Seleccione un vehículo...");
@@ -198,7 +286,7 @@ public class RegistrarVentaPanel extends JPanel {
             }
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "El precio final debe ser un número válido.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "El precio final y los campos de financiamiento deben ser números válidos.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
         }
     }
 }

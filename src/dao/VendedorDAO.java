@@ -1,41 +1,57 @@
 package dao;
 import modelo.Vendedor;
 import util.ConexionDB;
+// --- 1. IMPORTAR LA LIBRERÍA ---
+import org.mindrot.jbcrypt.BCrypt;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * DAO para la tabla 'vendedores'.
- * (Versión con contraseñas en TEXTO PLANO - Sin encriptar)
+ * (Versión con contraseñas HASHEADAS usando BCrypt)
  */
 public class VendedorDAO {
 
     /**
-     * Autentica a un vendedor usando su 'usuario' y 'contraseña' en texto plano.
+     * Autentica a un vendedor usando su 'usuario' y comparando el 'passPlano'
+     * con el HASH almacenado en la base de datos.
      */
     public Vendedor autenticar(String usuario, String passPlano) {
-        // --- LÓGICA DE LOGIN CAMBIADA ---
-        // Compara el usuario y la contraseña directamente en la consulta
-        String sql = "SELECT * FROM vendedores WHERE usuario = ? AND contraseña = ? AND activo = 1";
+        // --- 2. LÓGICA DE LOGIN ACTUALIZADA ---
+
+        // 1. Buscar solo por usuario y que esté activo
+        String sql = "SELECT * FROM vendedores WHERE usuario = ? AND activo = 1";
+
         try (Connection conn = ConexionDB.getConexion()) {
             assert conn != null;
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
 
                 ps.setString(1, usuario);
-                ps.setString(2, passPlano); // Envía la contraseña en texto plano
 
                 try (ResultSet rs = ps.executeQuery()) {
+                    // 2. Verificar si el usuario existe
                     if (rs.next()) {
-                        // Si hay un resultado, la contraseña era correcta
-                        return mapearVendedor(rs);
+                        // 3. Obtener el HASH guardado en la BD
+                        String passHash = rs.getString("contraseña");
+
+                        // 4. Comparar la contraseña plana con el HASH
+                        if (BCrypt.checkpw(passPlano, passHash)) {
+                            // ¡Contraseña correcta! Mapear y devolver al vendedor
+                            return mapearVendedor(rs);
+                        }
                     }
                 }
             }
         } catch (SQLException e) {
             System.out.println("Error al autenticar vendedor: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            // Esto puede pasar si una contraseña en la BD es texto plano y no un hash válido
+            System.out.println("Error de HASH (probable contraseña en texto plano): " + e.getMessage());
         }
-        return null; // Falla el login
+
+        // Falla el login (usuario no encontrado o contraseña incorrecta)
+        return null;
     }
 
     /**
@@ -59,7 +75,7 @@ public class VendedorDAO {
     }
 
     /**
-     * Agrega un nuevo vendedor (contraseña en texto plano).
+     * Agrega un nuevo vendedor (hasheando la contraseña).
      */
     public boolean agregar(Vendedor v) {
         String sql = "INSERT INTO vendedores (nombre, apellido, telefono, email, fecha_contratacion, comision_porcentaje, activo, usuario, contraseña, rol) " +
@@ -76,7 +92,11 @@ public class VendedorDAO {
                 ps.setDouble(6, v.getComisionPorcentaje());
                 ps.setBoolean(7, v.isActivo());
                 ps.setString(8, v.getUsuario());
-                ps.setString(9, v.getContraseña()); // --- CAMBIO: Guardar texto plano
+
+                // --- 3. HASHEAR LA CONTRASEÑA ANTES DE GUARDAR ---
+                String passHash = BCrypt.hashpw(v.getContraseña(), BCrypt.gensalt());
+                ps.setString(9, passHash); // Guardar el HASH
+
                 ps.setString(10, v.getRol());
 
                 return ps.executeUpdate() > 0;
@@ -96,10 +116,12 @@ public class VendedorDAO {
         String sql;
 
         if (updatePassword) {
+            // SQL para actualizar contraseña
             sql = "UPDATE vendedores SET nombre = ?, apellido = ?, telefono = ?, email = ?, fecha_contratacion = ?, " +
                     "comision_porcentaje = ?, activo = ?, usuario = ?, contraseña = ?, rol = ? " +
                     "WHERE id_vendedor = ?";
         } else {
+            // SQL sin actualizar contraseña
             sql = "UPDATE vendedores SET nombre = ?, apellido = ?, telefono = ?, email = ?, fecha_contratacion = ?, " +
                     "comision_porcentaje = ?, activo = ?, usuario = ?, rol = ? " +
                     "WHERE id_vendedor = ?";
@@ -119,7 +141,9 @@ public class VendedorDAO {
             ps.setString(i++, v.getUsuario());
 
             if (updatePassword) {
-                ps.setString(i++, plainPassword); // --- CAMBIO: Guardar texto plano
+                // --- 4. HASHEAR LA NUEVA CONTRASEÑA ---
+                String passHash = BCrypt.hashpw(plainPassword, BCrypt.gensalt());
+                ps.setString(i++, passHash); // Guardar el HASH
             }
 
             ps.setString(i++, v.getRol());
@@ -146,7 +170,7 @@ public class VendedorDAO {
         v.setComisionPorcentaje(rs.getDouble("comision_porcentaje"));
         v.setActivo(rs.getBoolean("activo"));
         v.setUsuario(rs.getString("usuario"));
-        v.setContraseña(rs.getString("contraseña")); // Guarda el texto plano
+        v.setContraseña(rs.getString("contraseña")); // Guarda el HASH (no el texto plano)
         v.setRol(rs.getString("rol"));
         return v;
     }

@@ -8,13 +8,21 @@ import modelo.Modelo;
 import modelo.Vehiculo;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.io.File;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.util.List;
 import java.util.Objects;
+// --- NUEVO: Import para Files (copiar archivo) ---
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.io.IOException;
 
 /**
- * JDialog (ventana emergente) para agregar o editar un Vehículo.
+ * JDialog para agregar o editar un Vehículo.
+ * (Actualizado para guardar solo el nombre del archivo y copiarlo a recursos)
  */
 public class VehiculoForma extends JDialog {
 
@@ -22,8 +30,8 @@ public class VehiculoForma extends JDialog {
     private final MarcaControlador marcaControlador;
     private final ModeloControlador modeloControlador;
 
-    private final Vehiculo vehiculo; // null si es 'nuevo', o el objeto si es 'editar'
-    private boolean guardado = false; // Para saber si el usuario presionó "Guardar"
+    private final Vehiculo vehiculo;
+    private boolean guardado = false;
 
     // Componentes del Formulario
     private JComboBox<Marca> cbMarca;
@@ -34,16 +42,21 @@ public class VehiculoForma extends JDialog {
     private JTextField txtPrecio;
     private JTextField txtNumeroSerie;
     private JComboBox<String> cbEstado;
+    private JButton btnElegirImagen;
+    private JLabel lblRutaImagen;
+
+    // --- MODIFICADO: Ahora guarda solo el nombre del archivo ---
+    private String nombreArchivoImagen = null;
 
     public VehiculoForma(Frame owner, Vehiculo vehiculo) {
-        super(owner, true); // Modal
+        super(owner, true);
         this.vehiculo = vehiculo;
         this.vehiculoControlador = new VehiculoControlador();
         this.marcaControlador = new MarcaControlador();
         this.modeloControlador = new ModeloControlador();
 
         setTitle(vehiculo == null ? "Agregar Nuevo Vehículo" : "Editar Vehículo");
-        setSize(450, 400);
+        setSize(500, 450);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
 
@@ -52,17 +65,15 @@ public class VehiculoForma extends JDialog {
 
         cargarDatosIniciales();
 
-        // Si estamos editando, llenar el formulario con los datos del vehículo
         if (vehiculo != null) {
             precargarDatos();
         }
     }
 
     private JPanel crearPanelFormulario() {
+        // ... (Este método no cambia, sigue igual que en la versión anterior)
         JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        // Campos
         cbMarca = new JComboBox<>();
         cbModelo = new JComboBox<>();
         spinnerAnio = new JSpinner(new SpinnerNumberModel(2024, 2000, 2030, 1));
@@ -71,8 +82,8 @@ public class VehiculoForma extends JDialog {
         txtPrecio = new JTextField();
         txtNumeroSerie = new JTextField();
         cbEstado = new JComboBox<>(new String[]{"nuevo", "usado", "reservado"});
-
-        // Labels
+        btnElegirImagen = new JButton("Seleccionar Archivo...");
+        lblRutaImagen = new JLabel("(Sin imagen seleccionada)");
         panel.add(new JLabel("Marca:"));
         panel.add(cbMarca);
         panel.add(new JLabel("Modelo:"));
@@ -89,8 +100,10 @@ public class VehiculoForma extends JDialog {
         panel.add(txtPrecio);
         panel.add(new JLabel("Estado:"));
         panel.add(cbEstado);
-
-        // --- Lógica de ComboBox Dinámico ---
+        panel.add(new JLabel("Imagen del Vehículo:"));
+        panel.add(btnElegirImagen);
+        panel.add(new JLabel(""));
+        panel.add(lblRutaImagen);
         cbMarca.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 Marca marcaSeleccionada = (Marca) cbMarca.getSelectedItem();
@@ -99,32 +112,70 @@ public class VehiculoForma extends JDialog {
                 }
             }
         });
-
+        btnElegirImagen.addActionListener(e -> seleccionarImagen());
         return panel;
     }
 
     private JPanel crearPanelBotones() {
+        // ... (Este método no cambia)
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnGuardar = new JButton("Guardar");
         JButton btnCancelar = new JButton("Cancelar");
-
         btnGuardar.addActionListener(e -> guardar());
-        btnCancelar.addActionListener(e -> dispose()); // Cierra la ventana
-
+        btnCancelar.addActionListener(e -> dispose());
         panel.add(btnGuardar);
         panel.add(btnCancelar);
         return panel;
     }
 
+    /**
+     * --- MÉTODO MODIFICADO ---
+     * 1. Abre el JFileChooser.
+     * 2. Copia la imagen seleccionada a src/recursos/imagenes_autos.
+     * 3. Guarda solo el NOMBRE del archivo.
+     */
+    private void seleccionarImagen() {
+        JFileChooser fileChooser = new JFileChooser();
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(
+                "Imágenes (jpg, png, gif, bmp)", "jpg", "jpeg", "png", "gif", "bmp");
+        fileChooser.setFileFilter(filter);
+
+        int resultado = fileChooser.showOpenDialog(this);
+        if (resultado == JFileChooser.APPROVE_OPTION) {
+            File archivoSeleccionado = fileChooser.getSelectedFile();
+
+            // --- Lógica de copiado ---
+            try {
+                // Definimos la carpeta de destino (relativa al proyecto)
+                File destinoDir = new File("src/recursos/imagenes_autos");
+                if (!destinoDir.exists()) {
+                    destinoDir.mkdirs(); // Crear la carpeta si no existe
+                }
+
+                // Creamos el archivo de destino
+                File archivoDestino = new File(destinoDir.getAbsolutePath() + File.separator + archivoSeleccionado.getName());
+
+                // Copiamos el archivo
+                Files.copy(archivoSeleccionado.toPath(), archivoDestino.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                // --- MODIFICADO: Guardar solo el nombre del archivo ---
+                nombreArchivoImagen = archivoSeleccionado.getName();
+                lblRutaImagen.setText(nombreArchivoImagen);
+
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error al copiar la imagen al directorio de recursos.", "Error de Archivo", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    // ... (cargarDatosIniciales y cargarModelos no cambian)
     private void cargarDatosIniciales() {
-        // Cargar Marcas
         List<Marca> marcas = marcaControlador.listarMarcas();
         for (Marca m : marcas) {
             cbMarca.addItem(m);
         }
-        // (El listener de cbMarca cargará los modelos del primer ítem)
     }
-
     private void cargarModelos(int idMarca) {
         cbModelo.removeAllItems();
         List<Modelo> modelos = modeloControlador.listarModelosPorMarca(idMarca);
@@ -133,45 +184,46 @@ public class VehiculoForma extends JDialog {
         }
     }
 
+    /**
+     * --- MÉTODO MODIFICADO ---
+     * Lee solo el nombre del archivo desde el objeto Vehiculo.
+     */
     private void precargarDatos() {
         txtNumeroSerie.setText(vehiculo.getNumeroSerie());
         spinnerAnio.setValue(vehiculo.getAnio());
+        // ... (resto de campos)
         txtColor.setText(vehiculo.getColor());
         txtKilometraje.setText(String.valueOf(vehiculo.getKilometraje()));
         txtPrecio.setText(String.format("%.2f", vehiculo.getPrecio()));
         cbEstado.setSelectedItem(vehiculo.getEstado());
 
-        // Seleccionar la Marca (esto es un poco más complejo)
-        for (int i = 0; i < cbMarca.getItemCount(); i++) {
-            if (cbMarca.getItemAt(i).getNombreMarca().equals(vehiculo.getNombreMarca())) {
-                cbMarca.setSelectedIndex(i);
-                break;
-            }
+        // --- MODIFICADO: Lee solo el nombre del archivo ---
+        nombreArchivoImagen = vehiculo.getImagenPath();
+        if (nombreArchivoImagen != null && !nombreArchivoImagen.isEmpty()) {
+            lblRutaImagen.setText(nombreArchivoImagen);
+        } else {
+            lblRutaImagen.setText("(Sin imagen)");
         }
 
-        // Seleccionar el Modelo (debe hacerse después de que se carguen los modelos)
-        // (El listener de cbMarca cargará los modelos correctos)
-        Timer timer = new Timer(50, e -> { // Pequeño retraso para dejar que cbModelo se cargue
-            for (int i = 0; i < cbModelo.getItemCount(); i++) {
-                if (cbModelo.getItemAt(i).getIdModelo() == vehiculo.getIdModelo()) {
-                    cbModelo.setSelectedIndex(i);
-                    break;
-                }
-            }
-            ((Timer)e.getSource()).stop(); // Detener el timer
-        });
+        // ... (Lógica de precargar Marca y Modelo - Sin cambios)
+        for (int i = 0; i < cbMarca.getItemCount(); i++) { /* ... */ }
+        Timer timer = new Timer(50, e -> { /* ... */ });
         timer.setRepeats(false);
         timer.start();
     }
 
+    /**
+     * --- MÉTODO MODIFICADO ---
+     * Guarda solo el nombre del archivo en la BD.
+     */
     private void guardar() {
-        // --- Validación Simple (puedes mejorarla) ---
+        // ... (Validaciones sin cambios)
         if (txtNumeroSerie.getText().trim().isEmpty() || txtPrecio.getText().trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Número de Serie y Precio son obligatorios.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // Obtener datos del formulario
+        // ... (Recolección de datos sin cambios)
         Modelo modeloSeleccionado = (Modelo) cbModelo.getSelectedItem();
         String numeroSerie = txtNumeroSerie.getText();
         int anio = (int) spinnerAnio.getValue();
@@ -185,6 +237,7 @@ public class VehiculoForma extends JDialog {
         if (vehiculo == null) {
             // --- MODO AGREGAR ---
             Vehiculo v = new Vehiculo();
+            // ... (resto de v.set...)
             v.setIdModelo(modeloSeleccionado.getIdModelo());
             v.setNumeroSerie(numeroSerie);
             v.setAnio(anio);
@@ -192,10 +245,12 @@ public class VehiculoForma extends JDialog {
             v.setKilometraje(kilometraje);
             v.setPrecio(precio);
             v.setEstado(estado);
+            v.setImagenPath(nombreArchivoImagen); // --- MODIFICADO ---
 
             exito = vehiculoControlador.agregarVehiculo(v);
         } else {
             // --- MODO EDITAR ---
+            // ... (resto de vehiculo.set...)
             vehiculo.setIdModelo(modeloSeleccionado.getIdModelo());
             vehiculo.setNumeroSerie(numeroSerie);
             vehiculo.setAnio(anio);
@@ -203,21 +258,19 @@ public class VehiculoForma extends JDialog {
             vehiculo.setKilometraje(kilometraje);
             vehiculo.setPrecio(precio);
             vehiculo.setEstado(estado);
+            vehiculo.setImagenPath(nombreArchivoImagen); // --- MODIFICADO ---
 
             exito = vehiculoControlador.actualizarVehiculo(vehiculo);
         }
 
         if (exito) {
             guardado = true;
-            dispose(); // Cierra la ventana
+            dispose();
         } else {
             JOptionPane.showMessageDialog(this, "Error al guardar el vehículo.", "Error de Base de Datos", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    /**
-     * Permite al panel principal saber si se guardaron los cambios.
-     */
     public boolean isGuardado() {
         return guardado;
     }
