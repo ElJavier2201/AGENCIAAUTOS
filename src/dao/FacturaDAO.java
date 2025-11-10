@@ -28,7 +28,6 @@ public class FacturaDAO {
         int idGenerado = 0;
 
         try (Connection conn = ConexionDB.getConexion()) {
-            assert conn != null;
             try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
                 ps.setInt(1, factura.getIdVenta());

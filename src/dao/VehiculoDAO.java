@@ -20,7 +20,6 @@ public class VehiculoDAO {
      */
     public List<Vehiculo> listarVehiculosDisponibles() {
         List<Vehiculo> vehiculos = new ArrayList<>();
-        // Consulta SQL con JOINs
         String sql = "SELECT v.*, m.nombre_modelo, ma.nombre_marca " +
                 "FROM vehiculos v " +
                 "JOIN modelos m ON v.id_modelo = m.id_modelo " +
@@ -37,6 +36,7 @@ public class VehiculoDAO {
             }
         } catch (SQLException e) {
             System.out.println("Error al listar vehículos: " + e.getMessage());
+            e.printStackTrace();
         }
         return vehiculos;
     }
@@ -45,8 +45,9 @@ public class VehiculoDAO {
      * Agrega un nuevo vehículo a la base de datos.
      */
     public boolean agregarVehiculo(Vehiculo v) {
-        String sql = "INSERT INTO vehiculos (id_modelo, numero_serie, año, color, kilometraje, precio, estado) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO vehiculos (id_modelo, numero_serie, año, color, kilometraje, precio, estado, imagen_path) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
         try (Connection conn = ConexionDB.getConexion();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -58,19 +59,30 @@ public class VehiculoDAO {
             ps.setDouble(6, v.getPrecio());
             ps.setString(7, v.getEstado()); // 'nuevo' o 'usado'
 
+            if (v.getImagenPath() != null && !v.getImagenPath().isEmpty()) {
+                ps.setString(8, v.getImagenPath());
+            } else {
+                ps.setNull(8, java.sql.Types.VARCHAR);
+            }
+
             return ps.executeUpdate() > 0;
+
         } catch (SQLException e) {
             System.out.println("Error al agregar vehículo: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
 
     /**
      * Actualiza la información de un vehículo existente.
+     * CORREGIDO: Incluye imagen_path
      */
     public boolean actualizarVehiculo(Vehiculo v) {
-        String sql = "UPDATE vehiculos SET id_modelo = ?, año = ?, color = ?, kilometraje = ?, precio = ?, estado = ? " +
+        String sql = "UPDATE vehiculos SET id_modelo = ?, año = ?, color = ?, kilometraje = ?, " +
+                "precio = ?, estado = ?, imagen_path = ? " +
                 "WHERE id_vehiculo = ?";
+
         try (Connection conn = ConexionDB.getConexion();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -80,11 +92,21 @@ public class VehiculoDAO {
             ps.setInt(4, v.getKilometraje());
             ps.setDouble(5, v.getPrecio());
             ps.setString(6, v.getEstado());
-            ps.setInt(7, v.getIdVehiculo());
+
+            // ✅ AGREGADO: Actualizar imagen_path (puede ser NULL)
+            if (v.getImagenPath() != null && !v.getImagenPath().isEmpty()) {
+                ps.setString(7, v.getImagenPath());
+            } else {
+                ps.setNull(7, java.sql.Types.VARCHAR);
+            }
+
+            ps.setInt(8, v.getIdVehiculo());
 
             return ps.executeUpdate() > 0;
+
         } catch (SQLException e) {
             System.out.println("Error al actualizar vehículo: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
@@ -94,12 +116,16 @@ public class VehiculoDAO {
      */
     public boolean marcarComoVendido(int idVehiculo) {
         String sql = "UPDATE vehiculos SET estado = 'vendido' WHERE id_vehiculo = ?";
+
         try (Connection conn = ConexionDB.getConexion();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+
             ps.setInt(1, idVehiculo);
             return ps.executeUpdate() > 0;
+
         } catch (SQLException e) {
             System.out.println("Error al marcar como vendido: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
@@ -118,11 +144,9 @@ public class VehiculoDAO {
         v.setPrecio(rs.getDouble("precio"));
         v.setEstado(rs.getString("estado"));
         v.setFechaIngreso(rs.getTimestamp("fecha_ingreso"));
-
-        // Datos de los JOINs
         v.setNombreModelo(rs.getString("nombre_modelo"));
         v.setNombreMarca(rs.getString("nombre_marca"));
-
+        v.setImagenPath(rs.getString("imagen_path"));
         return v;
     }
 }

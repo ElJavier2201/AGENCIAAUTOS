@@ -6,23 +6,21 @@ import controlador.VehiculoControlador;
 import modelo.Marca;
 import modelo.Modelo;
 import modelo.Vehiculo;
-
+import util.ValidadorSwing;
+import util.Validador;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.File;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.util.List;
-import java.util.Objects;
-// --- NUEVO: Import para Files (copiar archivo) ---
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.io.IOException;
 
 /**
  * JDialog para agregar o editar un Vehículo.
- * (Actualizado para guardar solo el nombre del archivo y copiarlo a recursos)
+ *  ACTUALIZADO: Con validaciones de VIN y precios
  */
 public class VehiculoForma extends JDialog {
 
@@ -31,18 +29,18 @@ public class VehiculoForma extends JDialog {
     private final ModeloControlador modeloControlador;
     private final Vehiculo vehiculo;
     private boolean guardado = false;
+
+    // Componentes con validación
     private JComboBox<Marca> cbMarca;
     private JComboBox<Modelo> cbModelo;
     private JSpinner spinnerAnio;
     private JTextField txtColor;
     private JTextField txtKilometraje;
-    private JTextField txtPrecio;
-    private JTextField txtNumeroSerie;
+    private ValidadorSwing txtPrecio;
+    private ValidadorSwing txtNumeroSerie; // VIN
     private JComboBox<String> cbEstado;
-    private JButton btnElegirImagen;
     private JLabel lblRutaImagen;
 
-    // --- MODIFICADO: Ahora guarda solo el nombre del archivo ---
     private String nombreArchivoImagen = null;
 
     public VehiculoForma(Frame owner, Vehiculo vehiculo) {
@@ -53,7 +51,7 @@ public class VehiculoForma extends JDialog {
         this.modeloControlador = new ModeloControlador();
 
         setTitle(vehiculo == null ? "Agregar Nuevo Vehículo" : "Editar Vehículo");
-        setSize(500, 450);
+        setSize(550, 550);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
 
@@ -68,38 +66,126 @@ public class VehiculoForma extends JDialog {
     }
 
     private JPanel crearPanelFormulario() {
-        JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        gbc.insets = new Insets(5, 5, 2, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        int row = 0;
+
+        // ===== MARCA =====
+        gbc.gridx = 0; gbc.gridy = row; gbc.weightx = 0.0;
+        panel.add(new JLabel("Marca: *"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
         cbMarca = new JComboBox<>();
+        panel.add(cbMarca, gbc);
+
+        // ===== MODELO =====
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
+        panel.add(new JLabel("Modelo: *"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
         cbModelo = new JComboBox<>();
-        spinnerAnio = new JSpinner(new SpinnerNumberModel(2024, 2000, 2030, 1));
+        panel.add(cbModelo, gbc);
+
+        // ===== VIN (NÚMERO DE SERIE) =====
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
+        panel.add(new JLabel("VIN (Número de Serie): *"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        txtNumeroSerie = new ValidadorSwing(17);
+        txtNumeroSerie.setValidador(Validador::validarVin);
+        txtNumeroSerie.setToolTipText("17 caracteres alfanuméricos (sin I, O, Q)");
+        panel.add(txtNumeroSerie, gbc);
+
+        gbc.gridx = 1; gbc.gridy = ++row;
+        // Labels de error
+        JLabel lblErrorVin = new JLabel();
+        lblErrorVin.setFont(new Font("Arial", Font.ITALIC, 10));
+        txtNumeroSerie.setLabelError(lblErrorVin);
+        panel.add(lblErrorVin, gbc);
+
+        // ===== AÑO =====
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
+        panel.add(new JLabel("Año: *"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        spinnerAnio = new JSpinner(new SpinnerNumberModel(2024, 1990, 2030, 1));
+        panel.add(spinnerAnio, gbc);
+
+        // ===== COLOR =====
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
+        panel.add(new JLabel("Color: *"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
         txtColor = new JTextField();
-        txtKilometraje = new JTextField();
-        txtPrecio = new JTextField();
-        txtNumeroSerie = new JTextField();
+        panel.add(txtColor, gbc);
+
+        // ===== KILOMETRAJE =====
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
+        panel.add(new JLabel("Kilometraje:"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        txtKilometraje = new JTextField("0");
+        panel.add(txtKilometraje, gbc);
+
+        // ===== PRECIO =====
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
+        panel.add(new JLabel("Precio: *"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        txtPrecio = new ValidadorSwing(15);
+        txtPrecio.setValidador(texto -> {
+            if (texto == null || texto.trim().isEmpty()) {
+                return "El precio es obligatorio";
+            }
+            try {
+                double precio = Double.parseDouble(texto);
+                return Validador.validarPositivo(precio, "El precio");
+            } catch (NumberFormatException e) {
+                return "El precio debe ser un número válido";
+            }
+        });
+        txtPrecio.setToolTipText("Precio en pesos. Ej: 250000.00");
+        panel.add(txtPrecio, gbc);
+
+        gbc.gridx = 1; gbc.gridy = ++row;
+        JLabel lblErrorPrecio = new JLabel();
+        lblErrorPrecio.setFont(new Font("Arial", Font.ITALIC, 10));
+        txtPrecio.setLabelError(lblErrorPrecio);
+        panel.add(lblErrorPrecio, gbc);
+
+        // ===== ESTADO =====
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
+        panel.add(new JLabel("Estado: *"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
         cbEstado = new JComboBox<>(new String[]{"nuevo", "usado", "reservado"});
-        btnElegirImagen = new JButton("Seleccionar Archivo...");
+        panel.add(cbEstado, gbc);
+
+        // ===== IMAGEN =====
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
+        panel.add(new JLabel("Imagen:"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        JButton btnElegirImagen = new JButton("Seleccionar Archivo...");
+        panel.add(btnElegirImagen, gbc);
+
+        gbc.gridx = 1; gbc.gridy = ++row;
         lblRutaImagen = new JLabel("(Sin imagen seleccionada)");
-        panel.add(new JLabel("Marca:"));
-        panel.add(cbMarca);
-        panel.add(new JLabel("Modelo:"));
-        panel.add(cbModelo);
-        panel.add(new JLabel("Número de Serie (VIN):"));
-        panel.add(txtNumeroSerie);
-        panel.add(new JLabel("Año:"));
-        panel.add(spinnerAnio);
-        panel.add(new JLabel("Color:"));
-        panel.add(txtColor);
-        panel.add(new JLabel("Kilometraje:"));
-        panel.add(txtKilometraje);
-        panel.add(new JLabel("Precio:"));
-        panel.add(txtPrecio);
-        panel.add(new JLabel("Estado:"));
-        panel.add(cbEstado);
-        panel.add(new JLabel("Imagen del Vehículo:"));
-        panel.add(btnElegirImagen);
-        panel.add(new JLabel(""));
-        panel.add(lblRutaImagen);
+        lblRutaImagen.setFont(new Font("Arial", Font.ITALIC, 10));
+        panel.add(lblRutaImagen, gbc);
+
+        // Nota
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.gridwidth = 2;
+        JLabel lblNota = new JLabel("* Campos obligatorios");
+        lblNota.setFont(new Font("Arial", Font.ITALIC, 10));
+        lblNota.setForeground(Color.GRAY);
+        panel.add(lblNota, gbc);
+
+        // Listeners
         cbMarca.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 Marca marcaSeleccionada = (Marca) cbMarca.getSelectedItem();
@@ -108,28 +194,25 @@ public class VehiculoForma extends JDialog {
                 }
             }
         });
+
         btnElegirImagen.addActionListener(e -> seleccionarImagen());
+
         return panel;
     }
 
     private JPanel crearPanelBotones() {
-        // ... (Este método no cambia)
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnGuardar = new JButton("Guardar");
         JButton btnCancelar = new JButton("Cancelar");
+
         btnGuardar.addActionListener(e -> guardar());
         btnCancelar.addActionListener(e -> dispose());
+
         panel.add(btnGuardar);
         panel.add(btnCancelar);
         return panel;
     }
 
-    /**
-     * --- MÉTODO MODIFICADO ---
-     * 1. Abre el JFileChooser.
-     * 2. Copia la imagen seleccionada a src/recursos/imagenes_autos.
-     * 3. Guarda solo el NOMBRE del archivo.
-     */
     private void seleccionarImagen() {
         JFileChooser fileChooser = new JFileChooser();
         FileNameExtensionFilter filter = new FileNameExtensionFilter(
@@ -140,38 +223,38 @@ public class VehiculoForma extends JDialog {
         if (resultado == JFileChooser.APPROVE_OPTION) {
             File archivoSeleccionado = fileChooser.getSelectedFile();
 
-            // --- Lógica de copiado ---
             try {
-                // Definimos la carpeta de destino (relativa al proyecto)
                 File destinoDir = new File("src/recursos/imagenes_autos");
                 if (!destinoDir.exists()) {
-                    destinoDir.mkdirs(); // Crear la carpeta si no existe
+                    destinoDir.mkdirs();
                 }
 
-                // Creamos el archivo de destino
-                File archivoDestino = new File(destinoDir.getAbsolutePath() + File.separator + archivoSeleccionado.getName());
+                File archivoDestino = new File(destinoDir.getAbsolutePath() +
+                        File.separator + archivoSeleccionado.getName());
 
-                // Copiamos el archivo
-                Files.copy(archivoSeleccionado.toPath(), archivoDestino.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(archivoSeleccionado.toPath(), archivoDestino.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING);
 
-                // --- MODIFICADO: Guardar solo el nombre del archivo ---
                 nombreArchivoImagen = archivoSeleccionado.getName();
                 lblRutaImagen.setText(nombreArchivoImagen);
 
             } catch (IOException ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Error al copiar la imagen al directorio de recursos.", "Error de Archivo", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this,
+                        "Error al copiar la imagen al directorio de recursos.",
+                        "Error de Archivo",
+                        JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-    // ... (cargarDatosIniciales y cargarModelos no cambian)
     private void cargarDatosIniciales() {
         List<Marca> marcas = marcaControlador.listarMarcas();
         for (Marca m : marcas) {
             cbMarca.addItem(m);
         }
     }
+
     private void cargarModelos(int idMarca) {
         cbModelo.removeAllItems();
         List<Modelo> modelos = modeloControlador.listarModelosPorMarca(idMarca);
@@ -180,91 +263,114 @@ public class VehiculoForma extends JDialog {
         }
     }
 
-    /**
-     * --- MÉTODO MODIFICADO ---
-     * Lee solo el nombre del archivo desde el objeto Vehiculo.
-     */
     private void precargarDatos() {
         txtNumeroSerie.setText(vehiculo.getNumeroSerie());
         spinnerAnio.setValue(vehiculo.getAnio());
-        // ... (resto de campos)
         txtColor.setText(vehiculo.getColor());
         txtKilometraje.setText(String.valueOf(vehiculo.getKilometraje()));
         txtPrecio.setText(String.format("%.2f", vehiculo.getPrecio()));
         cbEstado.setSelectedItem(vehiculo.getEstado());
 
-        // --- MODIFICADO: Lee solo el nombre del archivo ---
         nombreArchivoImagen = vehiculo.getImagenPath();
         if (nombreArchivoImagen != null && !nombreArchivoImagen.isEmpty()) {
             lblRutaImagen.setText(nombreArchivoImagen);
-        } else {
-            lblRutaImagen.setText("(Sin imagen)");
         }
 
-        // ... (Lógica de precargar Marca y Modelo - Sin cambios)
-        for (int i = 0; i < cbMarca.getItemCount(); i++) { /* ... */ }
-        Timer timer = new Timer(50, e -> { /* ... */ });
-        timer.setRepeats(false);
-        timer.start();
+        // Precargar marca y modelo
+        for (int i = 0; i < cbMarca.getItemCount(); i++) {
+            Marca m = cbMarca.getItemAt(i);
+            if (m.getIdMarca() == vehiculo.getIdModelo()) {
+                cbMarca.setSelectedItem(m);
+                break;
+            }
+        }
     }
 
-    /**
-     * --- MÉTODO MODIFICADO ---
-     * Guarda solo el nombre del archivo en la BD.
-     */
     private void guardar() {
-        // ... (Validaciones sin cambios)
-        if (txtNumeroSerie.getText().trim().isEmpty() || txtPrecio.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Número de Serie y Precio son obligatorios.", "Error", JOptionPane.ERROR_MESSAGE);
+        // ✅ VALIDACIONES
+        if (cbModelo.getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(this,
+                    "Debe seleccionar una marca y modelo.",
+                    "Error de Validación",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // ... (Recolección de datos sin cambios)
-        Modelo modeloSeleccionado = (Modelo) cbModelo.getSelectedItem();
-        String numeroSerie = txtNumeroSerie.getText();
-        int anio = (int) spinnerAnio.getValue();
-        String color = txtColor.getText();
-        int kilometraje = Integer.parseInt(txtKilometraje.getText().isEmpty() ? "0" : txtKilometraje.getText());
-        double precio = Double.parseDouble(txtPrecio.getText());
-        String estado = (String) cbEstado.getSelectedItem();
+        boolean valido = true;
+        valido &= txtNumeroSerie.validar();
+        valido &= txtPrecio.validar();
 
-        boolean exito;
-
-        if (vehiculo == null) {
-            // --- MODO AGREGAR ---
-            Vehiculo v = new Vehiculo();
-            // ... (resto de v.set...)
-            assert modeloSeleccionado != null;
-            v.setIdModelo(modeloSeleccionado.getIdModelo());
-            v.setNumeroSerie(numeroSerie);
-            v.setAnio(anio);
-            v.setColor(color);
-            v.setKilometraje(kilometraje);
-            v.setPrecio(precio);
-            v.setEstado(estado);
-            v.setImagenPath(nombreArchivoImagen); // --- MODIFICADO ---
-
-            exito = vehiculoControlador.agregarVehiculo(v);
-        } else {
-            // --- MODO EDITAR ---
-            // ... (resto de vehiculo.set...)
-            vehiculo.setIdModelo(modeloSeleccionado.getIdModelo());
-            vehiculo.setNumeroSerie(numeroSerie);
-            vehiculo.setAnio(anio);
-            vehiculo.setColor(color);
-            vehiculo.setKilometraje(kilometraje);
-            vehiculo.setPrecio(precio);
-            vehiculo.setEstado(estado);
-            vehiculo.setImagenPath(nombreArchivoImagen); // --- MODIFICADO ---
-
-            exito = vehiculoControlador.actualizarVehiculo(vehiculo);
+        if (txtColor.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "El color es obligatorio.",
+                    "Error de Validación",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
         }
 
-        if (exito) {
-            guardado = true;
-            dispose();
-        } else {
-            JOptionPane.showMessageDialog(this, "Error al guardar el vehículo.", "Error de Base de Datos", JOptionPane.ERROR_MESSAGE);
+        if (!valido) {
+            JOptionPane.showMessageDialog(this,
+                    "Por favor corrija los errores marcados antes de guardar.",
+                    "Errores de Validación",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            Modelo modeloSeleccionado = (Modelo) cbModelo.getSelectedItem();
+            String numeroSerie = Validador.normalizarVin(txtNumeroSerie.getTextoNormalizado());
+            int anio = (int) spinnerAnio.getValue();
+            String color = txtColor.getText().trim();
+            int kilometraje = Integer.parseInt(txtKilometraje.getText().isEmpty() ?
+                    "0" : txtKilometraje.getText());
+            double precio = Double.parseDouble(txtPrecio.getTextoNormalizado());
+            String estado = (String) cbEstado.getSelectedItem();
+
+            boolean exito;
+
+            if (vehiculo == null) {
+                Vehiculo v = new Vehiculo();
+                v.setIdModelo(modeloSeleccionado.getIdModelo());
+                v.setNumeroSerie(numeroSerie);
+                v.setAnio(anio);
+                v.setColor(color);
+                v.setKilometraje(kilometraje);
+                v.setPrecio(precio);
+                v.setEstado(estado);
+                v.setImagenPath(nombreArchivoImagen);
+
+                exito = vehiculoControlador.agregarVehiculo(v);
+            } else {
+                vehiculo.setIdModelo(modeloSeleccionado.getIdModelo());
+                vehiculo.setNumeroSerie(numeroSerie);
+                vehiculo.setAnio(anio);
+                vehiculo.setColor(color);
+                vehiculo.setKilometraje(kilometraje);
+                vehiculo.setPrecio(precio);
+                vehiculo.setEstado(estado);
+                vehiculo.setImagenPath(nombreArchivoImagen);
+
+                exito = vehiculoControlador.actualizarVehiculo(vehiculo);
+            }
+
+            if (exito) {
+                guardado = true;
+                JOptionPane.showMessageDialog(this,
+                        "Vehículo guardado exitosamente.",
+                        "Éxito",
+                        JOptionPane.INFORMATION_MESSAGE);
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Error al guardar el vehículo. Verifique que el VIN no esté duplicado.",
+                        "Error de Base de Datos",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Error en formato numérico. Verifique kilometraje y precio.",
+                    "Error de Formato",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 

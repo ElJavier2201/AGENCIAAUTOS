@@ -2,14 +2,23 @@ import vista.LoginPanel;
 import vista.PortalCliente;
 import vista.ClienteLoginDialog;
 import modelo.Cliente;
+import util.ConexionDB;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 /**
  * Punto de entrada principal de la aplicación Agencia de Autos.
+ * CORREGIDO: Ahora incluye login para clientes y cierre del pool
  */
 public class Main {
     public static void main(String[] args) {
+
+        // Registrar shutdown hook para cerrar el pool al salir
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("\n Cerrando aplicación...");
+            ConexionDB.cerrarPool();
+            System.out.println("Aplicación cerrada correctamente");
+        }));
 
         // Asegura que la UI se ejecute en el hilo de Swing
         SwingUtilities.invokeLater(() -> {
@@ -33,6 +42,8 @@ public class Main {
                 new LoginPanel().setVisible(true);
 
             } else if (seleccion == 1) {
+                // 1 = Cliente
+                // CORRECCIÓN: Primero hacer login del cliente
                 ClienteLoginDialog loginDialog = new ClienteLoginDialog(null);
                 loginDialog.setVisible(true);
 

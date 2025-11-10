@@ -16,6 +16,7 @@ public class Vehiculo {
     // Campos extra para JOINs (para mostrar en tablas)
     private String nombreModelo;
     private String nombreMarca;
+    private String imagenPath;
 
     public Vehiculo() {}
 
@@ -57,5 +58,13 @@ public class Vehiculo {
     @Override
     public String toString() {
         return nombreMarca + " " + nombreModelo + " (" + anio + ")";
+    }
+
+    public String getImagenPath() {
+        return imagenPath;
+    }
+
+    public void setImagenPath(String imagenPath) {
+        this.imagenPath = imagenPath;
     }
 }

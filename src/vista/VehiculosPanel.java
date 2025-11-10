@@ -8,56 +8,73 @@ import java.awt.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import javax.swing.SwingWorker;
-// --- NUEVO: Import para URL (Recursos) ---
-import java.net.URL;
 
 /**
  * Panel para el CRUD (Gestión) de Vehículos (Inventario).
- * (Actualizado para cargar imágenes desde recursos del classpath)
+ * (Actualizado con SwingWorker para carga en segundo plano)
  */
 public class VehiculosPanel extends JPanel {
     private final VehiculoControlador controlador;
     private final JTable tabla;
     private final DefaultTableModel modeloTabla;
     private List<Vehiculo> listaVehiculos;
-    private JLabel lblPreviewImagen;
+    private final JLabel lblPreviewImagen;
+
+    // --- NUEVO: Variables para los botones (para habilitar/deshabilitar) ---
     private JButton btnAgregar, btnEditar, btnVendido, btnRefrescar;
 
     public VehiculosPanel(boolean isGerente) {
-        // ... (Constructor sin cambios, igual al anterior)
         controlador = new VehiculoControlador();
         setLayout(new BorderLayout());
+
         JLabel titulo = new JLabel("Inventario de Vehículos", SwingConstants.CENTER);
         titulo.setFont(new Font("Arial", Font.BOLD, 18));
         add(titulo, BorderLayout.NORTH);
+
+        // Tabla
         String[] columnas = {"ID", "Marca", "Modelo", "Año", "VIN", "Color", "Km", "Precio", "Estado"};
-        modeloTabla = new DefaultTableModel(columnas, 0) { /* ... */ };
+        modeloTabla = new DefaultTableModel(columnas, 0) {
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
         tabla = new JTable(modeloTabla);
         tabla.getColumnModel().getColumn(0).setMinWidth(0);
         tabla.getColumnModel().getColumn(0).setMaxWidth(0);
+
+        // Panel de la imagen
         JPanel panelImagen = new JPanel(new BorderLayout());
         panelImagen.setBorder(BorderFactory.createTitledBorder("Vista Previa"));
         lblPreviewImagen = new JLabel("(Seleccione un vehículo de la tabla)", SwingConstants.CENTER);
         lblPreviewImagen.setPreferredSize(new Dimension(350, 350));
         panelImagen.add(lblPreviewImagen, BorderLayout.CENTER);
+
+        // JSplitPane
         JScrollPane scrollTabla = new JScrollPane(tabla);
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollTabla, panelImagen);
         splitPane.setDividerLocation(650);
         add(splitPane, BorderLayout.CENTER);
+
+        // Listener para la selección
         tabla.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 mostrarImagenSeleccionada();
             }
         });
+
+        // --- MODIFICADO: Panel de Botones ---
+        // (Los creamos aquí para poder acceder a ellos desde setBotonesEnabled)
         if (isGerente) {
             JPanel panelBotones = new JPanel();
             btnAgregar = new JButton("Agregar Vehículo");
             btnEditar = new JButton("Editar Seleccionado");
             btnVendido = new JButton("Marcar como Vendido");
+
             panelBotones.add(btnAgregar);
             panelBotones.add(btnEditar);
             panelBotones.add(btnVendido);
             add(panelBotones, BorderLayout.SOUTH);
+
             btnAgregar.addActionListener(e -> abrirFormulario(null));
             btnEditar.addActionListener(e -> abrirFormularioEditar());
             btnVendido.addActionListener(e -> marcarVendido());
@@ -68,25 +85,34 @@ public class VehiculosPanel extends JPanel {
             panelSur.add(btnRefrescar);
             add(panelSur, BorderLayout.SOUTH);
         }
+
+        // Carga inicial de datos
         cargarVehiculos();
     }
 
+    /**
+     * Carga la lista de vehículos en un hilo de fondo.
+     */
     private void cargarVehiculos() {
-        // ... (Este método no cambia, sigue usando SwingWorker)
-        setBotonesEnabled(false);
-        modeloTabla.setRowCount(0);
+        setBotonesEnabled(false); // Deshabilitar botones
+        modeloTabla.setRowCount(0); // Limpiar tabla
         lblPreviewImagen.setIcon(null);
-        lblPreviewImagen.setText("Cargando vehículos...");
+        lblPreviewImagen.setText("Cargando vehículos..."); // Mensaje de carga
 
         SwingWorker<List<Vehiculo>, Void> worker = new SwingWorker<>() {
+
             @Override
             protected List<Vehiculo> doInBackground() throws Exception {
+                // Esta es la llamada pesada, se ejecuta en otro hilo
                 return controlador.listarVehiculosDisponibles();
             }
+
             @Override
             protected void done() {
                 try {
-                    listaVehiculos = get();
+                    // Esto se ejecuta en el hilo de Swing cuando doInBackground termina
+                    listaVehiculos = get(); // Obtener el resultado
+
                     for (Vehiculo v : listaVehiculos) {
                         modeloTabla.addRow(new Object[]{
                                 v.getIdVehiculo(),
@@ -103,30 +129,30 @@ public class VehiculosPanel extends JPanel {
                     lblPreviewImagen.setText("(Seleccione un vehículo de la tabla)");
                 } catch (InterruptedException | ExecutionException e) {
                     lblPreviewImagen.setText("Error al cargar vehículos");
+                    JOptionPane.showMessageDialog(VehiculosPanel.this,
+                            "Error al cargar vehículos: " + e.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
                     e.printStackTrace();
                 } finally {
-                    setBotonesEnabled(true);
+                    setBotonesEnabled(true); // Volver a habilitar botones
                 }
             }
         };
-        worker.execute();
+
+        worker.execute(); // Iniciar el worker
     }
 
+    // --- NUEVO: Helper para habilitar/deshabilitar botones ---
     private void setBotonesEnabled(boolean enabled) {
-        // ... (Este método no cambia)
         if (btnAgregar != null) btnAgregar.setEnabled(enabled);
         if (btnEditar != null) btnEditar.setEnabled(enabled);
         if (btnVendido != null) btnVendido.setEnabled(enabled);
         if (btnRefrescar != null) btnRefrescar.setEnabled(enabled);
     }
 
-    /**
-     * --- MÉTODO MODIFICADO ---
-     * Carga la imagen desde el paquete de RECURSOS, no desde el disco C:\.
-     */
+    // --- Método sin cambios ---
     private void mostrarImagenSeleccionada() {
         int filaSeleccionada = tabla.getSelectedRow();
-
         if (filaSeleccionada == -1) {
             lblPreviewImagen.setIcon(null);
             lblPreviewImagen.setText("(Seleccione un vehículo de la tabla)");
@@ -134,47 +160,65 @@ public class VehiculosPanel extends JPanel {
         }
 
         Vehiculo v = listaVehiculos.get(filaSeleccionada);
-        String nombreArchivo = v.getImagenPath(); // Ej: "mustang.jpg"
+        String path = v.getImagenPath();
 
-        if (nombreArchivo != null && !nombreArchivo.isEmpty()) {
+        if (path != null && !path.isEmpty()) {
+            ImageIcon icon = new ImageIcon(path);
+            Image img = icon.getImage();
+            int lblWidth = lblPreviewImagen.getWidth();
+            int lblHeight = lblPreviewImagen.getHeight();
 
-            // --- ESTA ES LA LÓGICA DE CARGA DE RECURSOS ---
-            // Construimos la ruta *dentro* del classpath
-            String rutaRecurso = "/recursos/imagenes_autos/" + nombreArchivo;
+            if (lblWidth <= 0) lblWidth = 350;
+            if (lblHeight <= 0) lblHeight = 350;
 
-            // Pedimos al ClassLoader que encuentre el recurso
-            URL imgUrl = getClass().getResource(rutaRecurso);
-
-            if (imgUrl != null) {
-                // Si se encontró el recurso
-                ImageIcon icon = new ImageIcon(imgUrl);
-
-                Image img = icon.getImage();
-                int lblWidth = lblPreviewImagen.getWidth();
-                int lblHeight = lblPreviewImagen.getHeight();
-
-                if (lblWidth <= 0) lblWidth = 350;
-                if (lblHeight <= 0) lblHeight = 350;
-
-                Image newImg = img.getScaledInstance(lblWidth, lblHeight, Image.SCALE_SMOOTH);
-
-                lblPreviewImagen.setIcon(new ImageIcon(newImg));
-                lblPreviewImagen.setText(null);
-            } else {
-                // El archivo (ej. "mustang.jpg") no se encontró en la carpeta de recursos
-                lblPreviewImagen.setIcon(null);
-                lblPreviewImagen.setText("Imagen no encontrada");
-            }
-
+            Image newImg = img.getScaledInstance(lblWidth, lblHeight, Image.SCALE_SMOOTH);
+            lblPreviewImagen.setIcon(new ImageIcon(newImg));
+            lblPreviewImagen.setText(null);
         } else {
-            // El campo imagen_path está NULL o vacío en la BD
             lblPreviewImagen.setIcon(null);
             lblPreviewImagen.setText("Imagen no disponible");
         }
     }
 
-    // --- (El resto de métodos: abrirFormulario, abrirFormularioEditar, marcarVendido... no cambian) ---
-    private void abrirFormulario(Vehiculo vehiculo) { /* ... */ }
-    private void abrirFormularioEditar() { /* ... */ }
-    private void marcarVendido() { /* ... */ }
+    // --- Métodos de Gerente sin cambios ---
+    private void abrirFormulario(Vehiculo vehiculo) {
+        Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
+        VehiculoForma dialog = new VehiculoForma(owner, vehiculo);
+        dialog.setVisible(true);
+        if (dialog.isGuardado()) {
+            cargarVehiculos();
+        }
+    }
+
+    private void abrirFormularioEditar() {
+        int fila = tabla.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione un vehículo para editar.");
+            return;
+        }
+        Vehiculo v = listaVehiculos.get(fila);
+        abrirFormulario(v);
+    }
+
+    private void marcarVendido() {
+        int fila = tabla.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione un vehículo.");
+            return;
+        }
+        int idVehiculo = (int) modeloTabla.getValueAt(fila, 0);
+        String nombre = modeloTabla.getValueAt(fila, 1) + " " + modeloTabla.getValueAt(fila, 2);
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Marcar el vehículo '" + nombre + "' como VENDIDO?",
+                "Confirmar Venta", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            if (controlador.marcarComoVendido(idVehiculo)) {
+                JOptionPane.showMessageDialog(this, "Vehículo marcado como vendido.");
+                cargarVehiculos();
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al actualizar el estado.");
+            }
+        }
+    }
 }
