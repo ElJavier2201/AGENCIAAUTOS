@@ -3,22 +3,23 @@ package vista;
 import controlador.ReporteControlador;
 import modelo.Venta;
 import com.toedter.calendar.JDateChooser;
+import util.ExcelReporte;
 import util.FiltrosPanel;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import javax.swing.SwingWorker;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import util.PDFReporte;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Date;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
 
 /**
  * Panel para mostrar el reporte de ventas.
@@ -114,9 +115,13 @@ public class ReportesPanel extends JPanel {
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panelBotones.setBackground(new Color(236, 240, 241));
 
-        btnExportarPDF = crearBoton("📄 Exportar a PDF", new Color(231, 76, 60));
-        btnRefrescar = crearBoton("🔄 Refrescar", new Color(149, 165, 166));
 
+        btnExportarPDF = crearBoton("Exportar a PDF", new Color(231, 76, 60));
+        btnRefrescar = crearBoton("Refrescar", new Color(149, 165, 166));
+        JButton btnVistaPrevia = crearBoton("Vista Previa", new Color(155, 89, 182));
+        btnVistaPrevia.addActionListener(e -> mostrarVistaPrevia());
+
+        panelBotones.add(btnVistaPrevia);
         panelBotones.add(btnExportarPDF);
         panelBotones.add(btnRefrescar);
 
@@ -138,8 +143,32 @@ public class ReportesPanel extends JPanel {
         cargarReporte(null, null);
     }
 
+
+    private void mostrarVistaPrevia() {
+        if (listaVentas == null || listaVentas.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No hay datos para mostrar en la vista previa.",
+                    "Aviso",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Obtener datos filtrados actuales de la tabla
+        List<Venta> ventasFiltradas = new ArrayList<>();
+        for (int i = 0; i < tabla.getRowCount(); i++) {
+            int idVenta = Integer.parseInt(tabla.getValueAt(i, 0).toString());
+            listaVentas.stream()
+                    .filter(venta -> venta.getIdVenta() == idVenta)
+                    .findFirst().ifPresent(ventasFiltradas::add);
+        }
+
+        Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
+        ReportePrevio dialog = new ReportePrevio(owner, ventasFiltradas);
+        dialog.setVisible(true);
+    }
+
     /**
-     * ✅ NUEVO: Crea panel con estadísticas resumidas
+     *Crea panel con estadísticas resumidas
      */
     private JPanel crearPanelEstadisticas() {
         JPanel panel = new JPanel(new GridLayout(1, 4, 15, 0));
@@ -189,7 +218,7 @@ public class ReportesPanel extends JPanel {
     }
 
     /**
-     * ✅ NUEVO: Crea panel con búsqueda y filtros
+     *  Crea panel con búsqueda y filtros
      */
     private JPanel crearPanelBusqueda() {
         JPanel panelPrincipal = new JPanel(new BorderLayout());
@@ -209,7 +238,7 @@ public class ReportesPanel extends JPanel {
         panelFiltros.setBorder(BorderFactory.createEmptyBorder(5, 15, 10, 15));
 
         // Filtro por fechas
-        panelFiltros.add(new JLabel("📅 Desde:"));
+        panelFiltros.add(new JLabel(" Desde:"));
         dateDesde = new JDateChooser();
         dateDesde.setPreferredSize(new Dimension(120, 25));
         panelFiltros.add(dateDesde);
@@ -241,7 +270,7 @@ public class ReportesPanel extends JPanel {
         panelFiltros.add(new JSeparator(SwingConstants.VERTICAL));
 
         // Filtro por vendedor
-        panelFiltros.add(new JLabel("👨‍💼 Vendedor:"));
+        panelFiltros.add(new JLabel(" Vendedor:"));
         cbFiltroVendedor = new JComboBox<>(new String[]{"Todos"});
         cbFiltroVendedor.setPreferredSize(new Dimension(150, 25));
         cbFiltroVendedor.addActionListener(e -> aplicarFiltros(filtrosPanel.getTextoBusqueda()));
@@ -249,11 +278,17 @@ public class ReportesPanel extends JPanel {
 
         panelPrincipal.add(panelFiltros, BorderLayout.CENTER);
 
+        panelFiltros.add(new JSeparator(SwingConstants.VERTICAL));
+        panelFiltros.add(new JLabel(" Formato:"));
+        JComboBox<String> cbFormato = new JComboBox<>(new String[]{"PDF", "Excel", "CSV"});
+        cbFormato.setPreferredSize(new Dimension(100, 25));
+        panelFiltros.add(cbFormato);
+
         return panelPrincipal;
     }
 
     /**
-     * ✅ NUEVO: Aplica filtros de búsqueda
+     * Aplica filtros de búsqueda
      */
     private void aplicarFiltros(String textoBusqueda) {
         if (listaVentas == null || listaVentas.isEmpty()) {
@@ -396,80 +431,158 @@ public class ReportesPanel extends JPanel {
 
     private void exportarAPDF() {
         if (tabla.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(this, "No hay datos para exportar.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "No hay datos para exportar.",
+                    "Aviso",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
+        String formatoSeleccionado = (String) cbFormato.getSelectedItem();
+
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Guardar Reporte PDF");
-        fileChooser.setSelectedFile(new File("ReporteVentas.pdf"));
+        fileChooser.setDialogTitle("Guardar Reporte");
+
+        // Configurar extensión según formato
+        switch (formatoSeleccionado) {
+            case "PDF":
+                fileChooser.setSelectedFile(new File("ReporteVentas.pdf"));
+                break;
+            case "Excel":
+                fileChooser.setSelectedFile(new File("ReporteVentas.xlsx"));
+                break;
+            case "CSV":
+                fileChooser.setSelectedFile(new File("ReporteVentas.csv"));
+                break;
+        }
 
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File fileToSave = fileChooser.getSelectedFile();
 
-            try (PDDocument document = new PDDocument()) {
-                float margin = 50;
-                float yStart = 750;
-                float rowHeight = 20f;
-                float[] colWidths = {50, 80, 200, 150, 150, 80};
+            // Mostrar diálogo de progreso
+            JDialog progressDialog = new JDialog(
+                    (Frame) SwingUtilities.getWindowAncestor(this),
+                    "Generando Reporte...",
+                    true
+            );
+            JProgressBar progressBar = new JProgressBar();
+            progressBar.setIndeterminate(true);
+            progressDialog.add(progressBar);
+            progressDialog.setSize(300, 100);
+            progressDialog.setLocationRelativeTo(this);
 
-                PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-                PDType1Font fontNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            // Generar en hilo separado
+            SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
+                @Override
+                protected Boolean doInBackground() throws Exception {
+                    try {
+                        // Obtener fechas para el reporte
+                        String fechaInicioStr = dateDesde.getDate() != null
+                                ? new SimpleDateFormat("dd/MM/yyyy").format(dateDesde.getDate())
+                                : null;
+                        String fechaFinStr = dateHasta.getDate() != null
+                                ? new SimpleDateFormat("dd/MM/yyyy").format(dateHasta.getDate())
+                                : null;
 
-                PDPage page = new PDPage();
-                document.addPage(page);
-                PDPageContentStream contentStream = new PDPageContentStream(document, page);
-                float yPosition = yStart;
+                        switch (formatoSeleccionado) {
+                            case "PDF":
+                                PDFReporte pdfGen = new PDFReporte();
+                                pdfGen.generarReporteVentas(
+                                        listaVentas,
+                                        fileToSave,
+                                        fechaInicioStr,
+                                        fechaFinStr
+                                );
+                                break;
 
-                // Cabecera
-                contentStream.setFont(fontBold, 12);
-                contentStream.beginText();
-                contentStream.newLineAtOffset(margin, yPosition);
+                            case "Excel":
+                                ExcelReporte excelGen = new ExcelReporte();
+                                excelGen.generarReporteVentas(listaVentas, fileToSave);
+                                break;
 
-                for (int i = 0; i < modeloTabla.getColumnCount(); i++) {
-                    contentStream.showText(modeloTabla.getColumnName(i) + "   ");
-                    contentStream.newLineAtOffset(colWidths[i], 0);
-                }
-                contentStream.endText();
-                yPosition -= rowHeight;
+                            case "CSV":
+                                generarCSV(listaVentas, fileToSave);
+                                break;
+                        }
+                        return true;
 
-                // Datos
-                contentStream.setFont(fontNormal, 10);
-
-                for (int row = 0; row < modeloTabla.getRowCount(); row++) {
-                    if (yPosition < margin) {
-                        contentStream.close();
-                        page = new PDPage();
-                        document.addPage(page);
-                        contentStream = new PDPageContentStream(document, page);
-                        contentStream.setFont(fontNormal, 10);
-                        yPosition = yStart;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return false;
                     }
-
-                    contentStream.beginText();
-                    contentStream.newLineAtOffset(margin, yPosition);
-
-                    for (int col = 0; col < modeloTabla.getColumnCount(); col++) {
-                        String text = modeloTabla.getValueAt(row, col).toString();
-                        if (text.length() > 30) text = text.substring(0, 27) + "...";
-
-                        contentStream.showText(text + "   ");
-                        contentStream.newLineAtOffset(colWidths[col], 0);
-                    }
-                    contentStream.endText();
-                    yPosition -= rowHeight;
                 }
 
-                contentStream.close();
+                @Override
+                protected void done() {
+                    progressDialog.dispose();
 
-                document.save(fileToSave);
-                JOptionPane.showMessageDialog(this, "Reporte PDF guardado exitosamente.",
-                        "Exportación Completa", JOptionPane.INFORMATION_MESSAGE);
+                    try {
+                        if (get()) {
+                            // Preguntar si desea abrir el archivo
+                            int resultado = JOptionPane.showConfirmDialog(
+                                    ReportesPanel.this,
+                                    " Reporte generado exitosamente.\n¿Desea abrirlo ahora?",
+                                    "Exportación Completa",
+                                    JOptionPane.YES_NO_OPTION,
+                                    JOptionPane.INFORMATION_MESSAGE
+                            );
 
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(this, "Error al guardar el PDF: " + e.getMessage(),
-                        "Error de Exportación", JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
+                            if (resultado == JOptionPane.YES_OPTION) {
+                                try {
+                                    Desktop.getDesktop().open(fileToSave);
+                                } catch (IOException ex) {
+                                    JOptionPane.showMessageDialog(
+                                            ReportesPanel.this,
+                                            "No se pudo abrir el archivo automáticamente.\n" +
+                                                    "Ubicación: " + fileToSave.getAbsolutePath(),
+                                            "Información",
+                                            JOptionPane.INFORMATION_MESSAGE
+                                    );
+                                }
+                            }
+                        } else {
+                            JOptionPane.showMessageDialog(
+                                    ReportesPanel.this,
+                                    "❌ Error al generar el reporte",
+                                    "Error de Exportación",
+                                    JOptionPane.ERROR_MESSAGE
+                            );
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+
+            worker.execute();
+
+            // Mostrar el diálogo después de iniciar el worker
+            SwingUtilities.invokeLater(() -> progressDialog.setVisible(true));
+        }
+    }
+
+    /**
+     * Genera reporte en formato CSV
+     */
+    private void generarCSV(List<Venta> ventas, File file) throws IOException {
+        try (FileWriter writer = new FileWriter(file)) {
+            // BOM para UTF-8 (para Excel)
+            writer.write('\ufeff');
+
+            // Encabezados
+            writer.write("ID,Fecha,Vehículo,Cliente,Vendedor,Precio Final\n");
+
+            // Datos
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+            for (Venta v : ventas) {
+                writer.write(String.format("%d,%s,\"%s\",\"%s\",\"%s\",%.2f\n",
+                        v.getIdVenta(),
+                        sdf.format(v.getFechaVenta()),
+                        v.getNombreVehiculo().replace("\"", "\"\""),
+                        v.getNombreCliente().replace("\"", "\"\""),
+                        v.getNombreVendedor().replace("\"", "\"\""),
+                        v.getPrecioFinal()
+                ));
             }
         }
     }
