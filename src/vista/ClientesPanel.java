@@ -5,6 +5,7 @@ import modelo.Cliente;
 import util.FiltrosPanel;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -22,7 +23,6 @@ public class ClientesPanel extends JPanel {
     private List<Cliente> listaClientes;
     private final JButton btnAgregar;
     private final JButton btnEditar;
-    private TableRowSorter<DefaultTableModel> sorter;
     private final FiltrosPanel filtrosPanel;
 
     public ClientesPanel() {
@@ -54,14 +54,27 @@ public class ClientesPanel extends JPanel {
             }
         };
         tabla = new JTable(modeloTabla);
-        tabla.getColumnModel().getColumn(0).setMaxWidth(60);
-        tabla.setRowHeight(25);
-        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tabla.setFillsViewportHeight(true);
+        tabla.setRowHeight(28);
+        tabla.setGridColor(new Color(220, 220, 220));
+        tabla.setIntercellSpacing(new Dimension(0, 0));
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
+        JTableHeader header = tabla.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setPreferredSize(new Dimension(100, 35));
+        header.setBackground(new Color(52, 73, 94));
+        header.setForeground(Color.WHITE);
+        header.setReorderingAllowed(false);
+
+        tabla.setDefaultRenderer(Object.class, new util.EstiloTabla());
+        // --- FIN MEJORAS VISUALES ---
+
+        // (Tu código de ancho de columnas sigue aquí)
+        tabla.getColumnModel().getColumn(0).setMaxWidth(60);
+
         // Configurar ordenamiento
-        sorter = new TableRowSorter<>(modeloTabla);
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modeloTabla);
         tabla.setRowSorter(sorter);
 
         JScrollPane scrollPane = new JScrollPane(tabla);
@@ -138,7 +151,7 @@ public class ClientesPanel extends JPanel {
 
         SwingWorker<List<Cliente>, Void> worker = new SwingWorker<>() {
             @Override
-            protected List<Cliente> doInBackground() throws Exception {
+            protected List<Cliente> doInBackground() {
                 return controlador.listarClientes();
             }
 
@@ -255,13 +268,9 @@ public class ClientesPanel extends JPanel {
         int filaModelo = tabla.convertRowIndexToModel(fila);
         int idCliente = (int) modeloTabla.getValueAt(filaModelo, 0);
 
-        Cliente c = listaClientes.stream()
+        listaClientes.stream()
                 .filter(cliente -> cliente.getIdCliente() == idCliente)
-                .findFirst()
-                .orElse(null);
+                .findFirst().ifPresent(this::abrirFormulario);
 
-        if (c != null) {
-            abrirFormulario(c);
-        }
     }
 }

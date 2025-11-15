@@ -32,7 +32,6 @@ public class VentaDAO {
 
         try {
             conn = ConexionDB.getConexion();
-            if (conn == null) return 0;
 
             // Iniciar Transacción
             conn.setAutoCommit(false);
@@ -46,7 +45,7 @@ public class VentaDAO {
                 psVenta.setDate(5, venta.getFechaVenta());
                 psVenta.setDouble(6, venta.getPrecioFinal());
 
-                // ✅ CORRECCIÓN: Ahora se guardan los valores reales
+                // CORRECCIÓN: Ahora se guardan los valores reales
                 psVenta.setDouble(7, venta.getDescuento());
                 psVenta.setDouble(8, venta.getEnganche());
                 psVenta.setInt(9, venta.getPlazoMeses());
@@ -91,6 +90,7 @@ public class VentaDAO {
 
             // 4. Revertir Transacción en caso de error
             try {
+                assert conn != null;
                 conn.rollback();
             } catch (SQLException ex) {
                 System.out.println("Error al hacer rollback: " + ex.getMessage());
@@ -118,7 +118,6 @@ public class VentaDAO {
                 "ORDER BY v.fecha_venta DESC";
 
         try (Connection conn = ConexionDB.getConexion()) {
-            assert conn != null;
             try (PreparedStatement ps = conn.prepareStatement(sql);
                  ResultSet rs = ps.executeQuery()) {
 

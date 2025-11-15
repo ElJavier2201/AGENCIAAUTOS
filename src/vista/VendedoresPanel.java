@@ -5,6 +5,7 @@ import modelo.Vendedor;
 import util.FiltrosPanel;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -30,15 +31,12 @@ public class VendedoresPanel extends JPanel {
         setLayout(new BorderLayout(0, 10));
 
         // ===== TÍTULO =====
-        JLabel titulo = new JLabel("👨‍💼 Gestión de Vendedores", SwingConstants.CENTER);
+        JLabel titulo = new JLabel(" Gestión de Vendedores", SwingConstants.CENTER);
         titulo.setFont(new Font("Segoe UI", Font.BOLD, 20));
         titulo.setBorder(BorderFactory.createEmptyBorder(15, 0, 10, 0));
         add(titulo, BorderLayout.NORTH);
-
-        // ===== PANEL DE BÚSQUEDA Y FILTROS =====
         JPanel panelBusquedaCompleto = crearPanelBusqueda();
 
-        // ===== TABLA =====
         String[] columnas = {"ID", "Nombre Completo", "Usuario", "Rol", "Email", "Teléfono", "Comisión %", "Activo"};
         modeloTabla = new DefaultTableModel(columnas, 0) {
             public boolean isCellEditable(int row, int column) {
@@ -46,14 +44,23 @@ public class VendedoresPanel extends JPanel {
             }
         };
         tabla = new JTable(modeloTabla);
+        tabla.setFillsViewportHeight(true); // Rellena el espacio vacío si hay pocas filas
+        tabla.setRowHeight(28); // Un poco más de altura de fila
+        tabla.setGridColor(new Color(220, 220, 220)); // Líneas de grid sutiles
+        tabla.setIntercellSpacing(new Dimension(0, 0));
+
+        // Estilo del Header (Cabecera)
+        JTableHeader header = tabla.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setPreferredSize(new Dimension(100, 35));
+        header.setBackground(new Color(52, 73, 94)); // Color de la barra lateral
+        header.setForeground(Color.WHITE);
+        header.setReorderingAllowed(false); // Opcional: deshabilitar reordenar columnas
+        tabla.setDefaultRenderer(Object.class, new util.EstiloTabla());
         tabla.getColumnModel().getColumn(0).setMaxWidth(50);
         tabla.getColumnModel().getColumn(3).setMaxWidth(80); // Rol
         tabla.getColumnModel().getColumn(6).setMaxWidth(90); // Comisión
         tabla.getColumnModel().getColumn(7).setMaxWidth(60); // Activo
-        tabla.setRowHeight(25);
-        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-
         JScrollPane scrollPane = new JScrollPane(tabla);
         scrollPane.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
 
@@ -68,10 +75,10 @@ public class VendedoresPanel extends JPanel {
         panelBotones.setBackground(new Color(236, 240, 241));
         panelBotones.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
 
-        btnAgregar = crearBoton("➕ Agregar Vendedor", new Color(46, 204, 113));
-        btnEditar = crearBoton("✏️ Editar Seleccionado", new Color(52, 152, 219));
-        btnActivar = crearBoton("🔄 Activar/Desactivar", new Color(230, 126, 34));
-        JButton btnRefrescar = crearBoton("🔄 Refrescar", new Color(149, 165, 166));
+        btnAgregar = crearBoton(" Agregar Vendedor", new Color(46, 204, 113));
+        btnEditar = crearBoton(" Editar Seleccionado", new Color(52, 152, 219));
+        btnActivar = crearBoton(" Activar/Desactivar", new Color(230, 126, 34));
+        JButton btnRefrescar = crearBoton(" Refrescar", new Color(149, 165, 166));
 
         panelBotones.add(btnAgregar);
         panelBotones.add(btnEditar);
@@ -104,7 +111,7 @@ public class VendedoresPanel extends JPanel {
     }
 
     /**
-     * ✅ NUEVO: Crea panel con búsqueda y filtros
+     *  Crea panel con búsqueda y filtros
      */
     private JPanel crearPanelBusqueda() {
         JPanel panelPrincipal = new JPanel(new BorderLayout());
@@ -142,7 +149,7 @@ public class VendedoresPanel extends JPanel {
         panelFiltros.add(new JSeparator(SwingConstants.VERTICAL));
 
         // Estadísticas rápidas
-        JLabel lblStats = new JLabel("📊 Total: 0 | Activos: 0 | Inactivos: 0");
+        JLabel lblStats = new JLabel("Total: 0 | Activos: 0 | Inactivos: 0");
         lblStats.setFont(new Font("Segoe UI", Font.ITALIC, 11));
         lblStats.setForeground(new Color(127, 140, 141));
         panelFiltros.add(lblStats);
@@ -171,11 +178,13 @@ public class VendedoresPanel extends JPanel {
                     boolean coincideTexto = busqueda.isEmpty() || coincideBusqueda(v, busqueda, filtroTexto);
 
                     // Filtro de rol
+                    assert rolSeleccionado != null;
                     boolean coincideRol = rolSeleccionado.equals("Todos") ||
                             v.getRol().equalsIgnoreCase(rolSeleccionado);
 
                     // Filtro de estado
                     boolean coincideEstado;
+                    assert estadoSeleccionado != null;
                     if (estadoSeleccionado.equals("Activos")) {
                         coincideEstado = v.isActivo();
                     } else if (estadoSeleccionado.equals("Inactivos")) {
@@ -197,8 +206,8 @@ public class VendedoresPanel extends JPanel {
         // Buscar el label de estadísticas y actualizarlo
         Component[] comps = ((JPanel)filtrosPanel.getParent().getComponent(1)).getComponents();
         for (Component comp : comps) {
-            if (comp instanceof JLabel && ((JLabel)comp).getText().contains("📊")) {
-                ((JLabel)comp).setText(String.format("📊 Total: %d | Activos: %d | Inactivos: %d",
+            if (comp instanceof JLabel && ((JLabel)comp).getText().contains(" ")) {
+                ((JLabel)comp).setText(String.format(" Total: %d | Activos: %d | Inactivos: %d",
                         resultado.size(), activos, inactivos));
                 break;
             }
@@ -214,18 +223,15 @@ public class VendedoresPanel extends JPanel {
      * Verifica si el vendedor coincide con la búsqueda
      */
     private boolean coincideBusqueda(Vendedor v, String busqueda, String filtro) {
-        switch (filtro) {
-            case "Por Nombre":
-                return (v.getNombre() + " " + v.getApellido()).toLowerCase().contains(busqueda);
-            case "Por Usuario":
-                return v.getUsuario() != null && v.getUsuario().toLowerCase().contains(busqueda);
-            case "Por Email":
-                return v.getEmail() != null && v.getEmail().toLowerCase().contains(busqueda);
-            default: // "Todos"
-                return (v.getNombre() + " " + v.getApellido()).toLowerCase().contains(busqueda) ||
-                        (v.getUsuario() != null && v.getUsuario().toLowerCase().contains(busqueda)) ||
-                        (v.getEmail() != null && v.getEmail().toLowerCase().contains(busqueda));
-        }
+        return switch (filtro) {
+            case "Por Nombre" -> (v.getNombre() + " " + v.getApellido()).toLowerCase().contains(busqueda);
+            case "Por Usuario" -> v.getUsuario() != null && v.getUsuario().toLowerCase().contains(busqueda);
+            case "Por Email" -> v.getEmail() != null && v.getEmail().toLowerCase().contains(busqueda);
+            default -> // "Todos"
+                    (v.getNombre() + " " + v.getApellido()).toLowerCase().contains(busqueda) ||
+                            (v.getUsuario() != null && v.getUsuario().toLowerCase().contains(busqueda)) ||
+                            (v.getEmail() != null && v.getEmail().toLowerCase().contains(busqueda));
+        };
     }
 
     /**
@@ -328,14 +334,10 @@ public class VendedoresPanel extends JPanel {
         }
 
         int idVendedor = (int) modeloTabla.getValueAt(fila, 0);
-        Vendedor v = listaVendedores.stream()
+        listaVendedores.stream()
                 .filter(vendedor -> vendedor.getIdVendedor() == idVendedor)
-                .findFirst()
-                .orElse(null);
+                .findFirst().ifPresent(this::abrirFormulario);
 
-        if (v != null) {
-            abrirFormulario(v);
-        }
     }
 
     private void toggleActivo() {

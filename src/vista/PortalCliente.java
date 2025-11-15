@@ -10,15 +10,7 @@ import java.awt.*;
  */
 public class PortalCliente extends JFrame {
 
-    private final Cliente cliente;
-    private JTabbedPane tabbedPane;
-
-    public PortalCliente(Cliente cliente) {// ✅ CORRECCIÓN: Validación de seguridad
-        if (cliente == null) {
-            throw new IllegalArgumentException("El cliente no puede ser null");
-        }
-
-        this.cliente = cliente;
+    public PortalCliente(Cliente cliente) { // Permitir que cliente sea NULL
 
         setTitle("Portal de Cliente - " + cliente.getNombre());
         setSize(924, 768);
@@ -28,30 +20,54 @@ public class PortalCliente extends JFrame {
 
         // Panel de bienvenida
         JPanel panelNorte = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panelNorte.add(new JLabel("Bienvenido, " + cliente.getNombre() + " " + cliente.getApellido()));
+        JLabel lblBienvenida = new JLabel();
         JButton btnCerrarSesion = new JButton("Cerrar Sesión");
+        JButton btnIniciarSesion = new JButton("Iniciar Sesión");
+
+        panelNorte.add(lblBienvenida);
+        panelNorte.add(btnIniciarSesion);
         panelNorte.add(btnCerrarSesion);
         add(panelNorte, BorderLayout.NORTH);
 
         // Pestañas
-        tabbedPane = new JTabbedPane();
+        JTabbedPane tabbedPane = new JTabbedPane();
 
         tabbedPane.addTab("Ver Catálogo", new VehiculosPanel(false));
 
-        // Pestaña 2: Estado de Cuenta
-        tabbedPane.addTab("Mi Estado de Cuenta", new ClienteEstadoCuentaPanel(cliente));
+        if (cliente != null) {
+            tabbedPane.addTab("Mi Estado de Cuenta", new ClienteEstadoCuentaPanel(cliente));
+            tabbedPane.addTab("Mis Compras (Próximamente)", new JPanel());
 
-        // Pestaña 3: Mis Compras (Historial)
-        tabbedPane.addTab("Mis Compras (Próximamente)", new JPanel());
+            // Configurar bienvenida y botones
+            lblBienvenida.setText("Bienvenido, " + cliente.getNombre() + " " + cliente.getApellido());
+            btnIniciarSesion.setVisible(false);
+            btnCerrarSesion.setVisible(true);
+        } else {
+            // --- MODO INVITADO ---
+            lblBienvenida.setText("Bienvenido, Invitado.");
+            btnIniciarSesion.setVisible(true);
+            btnCerrarSesion.setVisible(false);
+        }
 
         add(tabbedPane, BorderLayout.CENTER);
 
         // Acción de cerrar sesión
         btnCerrarSesion.addActionListener(e -> {
             dispose();
-            SwingUtilities.invokeLater(() -> {
-                new LoginPanel().setVisible(true);
-            });
+            SwingUtilities.invokeLater(() -> new LoginPanel().setVisible(true));
+        });
+
+        btnIniciarSesion.addActionListener(e -> {
+            ClienteLoginDialog loginDialog = new ClienteLoginDialog(this);
+            loginDialog.setVisible(true);
+
+            Cliente clienteAutenticado = loginDialog.getClienteAutenticado();
+            if (clienteAutenticado != null) {
+                // Login exitoso: cierra este portal de invitado y abre uno nuevo
+                dispose();
+                new PortalCliente(clienteAutenticado).setVisible(true);
+            }
+            // Si no hizo login, no hace nada y sigue como invitado
         });
     }
 }

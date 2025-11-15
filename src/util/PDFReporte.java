@@ -59,20 +59,20 @@ public class PDFReporte {
             // 4. Tabla de ventas
             dibujarTablaVentas(ventas);
 
-            // 5. Pie de página en todas las páginas
+            contentStream.close();
+
             agregarPiePagina();
 
-            // Guardar documento
+            // 7. Guardar documento
             document.save(outputFile);
 
         } finally {
-            contentStream.close();
             document.close();
         }
     }
 
     /**
-     * 🎨 Dibuja el encabezado corporativo
+     * Dibuja el encabezado corporativo
      */
     private void dibujarEncabezado() throws IOException {
         PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
@@ -133,7 +133,7 @@ public class PDFReporte {
     }
 
     /**
-     * 🎨 Dibuja el título del reporte
+     * Dibuja el título del reporte
      */
     private void dibujarTitulo(String fechaInicio, String fechaFin) throws IOException {
         PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
@@ -177,7 +177,7 @@ public class PDFReporte {
     }
 
     /**
-     * 📊 Dibuja el resumen ejecutivo con KPIs
+     *  Dibuja el resumen ejecutivo con KPIs
      */
     private void dibujarResumenEjecutivo(List<Venta> ventas) throws IOException {
         PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
@@ -194,7 +194,7 @@ public class PDFReporte {
         contentStream.beginText();
         contentStream.setFont(fontBold, 13);
         contentStream.newLineAtOffset(MARGIN_LEFT, yPosition);
-        contentStream.showText("📊 RESUMEN EJECUTIVO");
+        contentStream.showText("RESUMEN EJECUTIVO");
         contentStream.endText();
 
         yPosition -= 25;
@@ -230,7 +230,7 @@ public class PDFReporte {
     }
 
     /**
-     * 🎴 Dibuja una tarjeta de KPI
+     * Dibuja una tarjeta de KPI
      */
     private void dibujarTarjetaKPI(float x, float y, float width, float height,
                                    String label, String value, Color color) throws IOException {
@@ -278,7 +278,7 @@ public class PDFReporte {
     }
 
     /**
-     * 📋 Dibuja la tabla de ventas con formato
+     * Dibuja la tabla de ventas con formato
      */
     private void dibujarTablaVentas(List<Venta> ventas) throws IOException {
         PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
@@ -289,13 +289,13 @@ public class PDFReporte {
         contentStream.beginText();
         contentStream.setFont(fontBold, 13);
         contentStream.newLineAtOffset(MARGIN_LEFT, yPosition);
-        contentStream.showText("📋 DETALLE DE VENTAS");
+        contentStream.showText("DETALLE DE VENTAS");
         contentStream.endText();
 
         yPosition -= 25;
 
         // Configuración de tabla
-        float[] columnWidths = {40, 70, 150, 120, 120, 80}; // ID, Fecha, Vehículo, Cliente, Vendedor, Monto
+        float[] columnWidths = {35, 65, 130, 95, 90, 80}; // ID, Fecha, Vehículo, Cliente, Vendedor, Monto
         String[] headers = {"ID", "Fecha", "Vehículo", "Cliente", "Vendedor", "Monto"};
         float rowHeight = 20;
         float tableWidth = 0;
@@ -308,16 +308,17 @@ public class PDFReporte {
 
         // Textos de encabezado
         contentStream.setNonStrokingColor(Color.WHITE);
-        contentStream.beginText();
-        contentStream.setFont(fontBold, 9);
-
+        float y = yPosition - 14; // Posición Y de la fila de texto
         float xOffset = MARGIN_LEFT + 5;
+
         for (int i = 0; i < headers.length; i++) {
-            contentStream.newLineAtOffset(xOffset - contentStream.getCurrentPoint().x, yPosition - 14);
+            contentStream.beginText();
+            contentStream.setFont(fontBold, 9);
+            contentStream.newLineAtOffset(xOffset, y); // Posición absoluta
             contentStream.showText(headers[i]);
-            xOffset += columnWidths[i];
+            contentStream.endText();
+            xOffset += columnWidths[i]; // Mover xOffset para la siguiente celda
         }
-        contentStream.endText();
 
         yPosition -= rowHeight;
 
@@ -355,16 +356,19 @@ public class PDFReporte {
 
             // Dibujar celdas
             contentStream.setNonStrokingColor(COLOR_SECONDARY);
-            contentStream.beginText();
-            contentStream.setFont(fontNormal, 8);
+            y = yPosition - 13;
+            xOffset = MARGIN_LEFT + 5; // Resetear xOffset para la fila
 
-            xOffset = MARGIN_LEFT + 5;
             for (int i = 0; i < rowData.length; i++) {
-                contentStream.newLineAtOffset(xOffset - contentStream.getCurrentPoint().x, yPosition - 13);
+                contentStream.beginText();
+                contentStream.setFont(fontNormal, 8);
+                contentStream.newLineAtOffset(xOffset, y); // Posición absoluta
                 contentStream.showText(rowData[i]);
-                xOffset += columnWidths[i];
+                contentStream.endText();
+                xOffset += columnWidths[i]; // Mover xOffset para la siguiente celda
             }
-            contentStream.endText();
+
+           // contentStream.endText();
 
             // Línea divisoria
             contentStream.setStrokingColor(new Color(220, 220, 220));
@@ -385,7 +389,7 @@ public class PDFReporte {
     }
 
     /**
-     * 📄 Agrega pie de página a todas las páginas
+     * Agrega pie de página a todas las páginas
      */
     private void agregarPiePagina() throws IOException {
         PDType1Font fontItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);

@@ -2,17 +2,18 @@ package modelo;
 import java.sql.Timestamp;
 
 /**
- * --- MODIFICADO: Ahora hereda de Persona ---
+ * MODIFICADO: Ahora hereda de Persona y tiene campos de login ---
  */
 public class Cliente extends Persona {
     private int idCliente;
     private String direccion;
     private String rfc;
     private Timestamp fechaRegistro;
+    private String usuario;
+    private String contraseña; // Se usará para crear/actualizar, no para almacenar en el objeto
 
     public Cliente() {}
 
-    // Getters y Setters
     public int getIdCliente() { return idCliente; }
     public void setIdCliente(int idCliente) { this.idCliente = idCliente; }
 
@@ -25,7 +26,12 @@ public class Cliente extends Persona {
     public Timestamp getFechaRegistro() { return fechaRegistro; }
     public void setFechaRegistro(Timestamp fechaRegistro) { this.fechaRegistro = fechaRegistro; }
 
-    // Importante para JComboBox (Usa los campos heredados)
+    public String getUsuario() { return usuario; }
+    public void setUsuario(String usuario) { this.usuario = usuario; }
+
+    public String getContraseña() { return contraseña; }
+    public void setContraseña(String contraseña) { this.contraseña = contraseña; }
+
     @Override
     public String toString() {
         return nombre + " " + apellido;

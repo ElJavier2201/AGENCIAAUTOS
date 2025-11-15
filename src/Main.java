@@ -23,13 +23,16 @@ public class Main {
         // Asegura que la UI se ejecute en el hilo de Swing
         SwingUtilities.invokeLater(() -> {
 
-            // 1. Preguntar al usuario su rol
-            Object[] opciones = {"Soy Empleado (Iniciar Sesión)", "Soy Cliente (Ver Catálogo)"};
+            Object[] opciones = {
+                    "Soy Empleado (Gerente/Vendedor)",
+                    "Soy Cliente (Iniciar Sesión)",
+                    "Ver Catálogo (Invitado)"
+            };
             int seleccion = JOptionPane.showOptionDialog(
                     null,
                     "Bienvenido a la Agencia de Autos",
                     "Seleccionar Acceso",
-                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.YES_NO_CANCEL_OPTION, // Cambiado
                     JOptionPane.QUESTION_MESSAGE,
                     null,
                     opciones,
@@ -41,23 +44,22 @@ public class Main {
                 // 0 = Empleado
                 new LoginPanel().setVisible(true);
 
-            } else if (seleccion == 1) {
-                // 1 = Cliente
-                // CORRECCIÓN: Primero hacer login del cliente
+            }else if (seleccion == 1) {
+                // 1 = Cliente (Iniciar Sesión)
                 ClienteLoginDialog loginDialog = new ClienteLoginDialog(null);
                 loginDialog.setVisible(true);
 
-                // Si el login fue exitoso, abrir el portal
                 Cliente clienteAutenticado = loginDialog.getClienteAutenticado();
                 if (clienteAutenticado != null) {
                     new PortalCliente(clienteAutenticado).setVisible(true);
-                } else {
-                    // Si canceló o falló el login, volver a mostrar opciones
-                    JOptionPane.showMessageDialog(null,
-                            "No se pudo autenticar. La aplicación se cerrará.",
-                            "Acceso Cancelado",
-                            JOptionPane.WARNING_MESSAGE);
                 }
+
+            } else if (seleccion == 2) {
+                // 2 = Invitado
+                new PortalCliente(null).setVisible(true); // Abre el portal con cliente NULL
+
+            } else {
+                System.exit(0);
             }
         });
     }

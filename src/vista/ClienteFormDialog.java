@@ -9,19 +9,18 @@ import java.awt.*;
 
 /**
  * JDialog para agregar o editar un Cliente.
- * ACTUALIZADO: Ahora incluye validaciones en tiempo real
  */
 public class ClienteFormDialog extends JDialog {
 
     private final ClienteControlador controlador;
     private final Cliente cliente;
     private boolean guardado = false;
-
     private ValidadorSwing txtNombre, txtApellido, txtTelefono, txtEmail, txtRfc;
     private JTextArea txtDireccion;
-
-    // Labels para errores
+    private ValidadorSwing txtUsuario;
+    private JPasswordField txtContrasena;
     private JLabel lblErrorNombre, lblErrorApellido, lblErrorTelefono, lblErrorEmail, lblErrorRfc;
+    private JLabel lblErrorUsuario, lblErrorPassword;
 
     public ClienteFormDialog(Frame owner, Cliente cliente) {
         super(owner, true);
@@ -29,7 +28,7 @@ public class ClienteFormDialog extends JDialog {
         this.controlador = new ClienteControlador();
 
         setTitle(cliente == null ? "Agregar Nuevo Cliente" : "Editar Cliente");
-        setSize(500, 500);
+        setSize(500, 600); // <-- Aumentamos un poco la altura para los nuevos campos
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
 
@@ -55,13 +54,11 @@ public class ClienteFormDialog extends JDialog {
         // ===== NOMBRE =====
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = 0.0;
         panel.add(new JLabel("Nombre: *"), gbc);
-
         gbc.gridx = 1; gbc.weightx = 1.0;
         txtNombre = new ValidadorSwing(20);
         txtNombre.setValidador(texto -> Validador.validarNombre(texto, "nombre"));
         panel.add(txtNombre, gbc);
 
-        // Label de error
         gbc.gridx = 1; gbc.gridy = ++row;
         lblErrorNombre = new JLabel();
         lblErrorNombre.setFont(new Font("Arial", Font.ITALIC, 10));
@@ -71,7 +68,6 @@ public class ClienteFormDialog extends JDialog {
         // ===== APELLIDO =====
         gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
         panel.add(new JLabel("Apellido: *"), gbc);
-
         gbc.gridx = 1; gbc.weightx = 1.0;
         txtApellido = new ValidadorSwing(20);
         txtApellido.setValidador(texto -> Validador.validarNombre(texto, "apellido"));
@@ -86,7 +82,6 @@ public class ClienteFormDialog extends JDialog {
         // ===== TELÉFONO =====
         gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
         panel.add(new JLabel("Teléfono: *"), gbc);
-
         gbc.gridx = 1; gbc.weightx = 1.0;
         txtTelefono = new ValidadorSwing(15);
         txtTelefono.setValidador(texto -> Validador.validarTelefono(texto, true));
@@ -102,7 +97,6 @@ public class ClienteFormDialog extends JDialog {
         // ===== EMAIL =====
         gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
         panel.add(new JLabel("Email: *"), gbc);
-
         gbc.gridx = 1; gbc.weightx = 1.0;
         txtEmail = new ValidadorSwing(25);
         txtEmail.setValidador(Validador::validarEmail);
@@ -118,7 +112,6 @@ public class ClienteFormDialog extends JDialog {
         // ===== RFC =====
         gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
         panel.add(new JLabel("RFC:"), gbc);
-
         gbc.gridx = 1; gbc.weightx = 1.0;
         txtRfc = new ValidadorSwing(13);
         txtRfc.setValidador(texto -> Validador.validarRfc(texto, false));
@@ -131,6 +124,39 @@ public class ClienteFormDialog extends JDialog {
         lblErrorRfc.setFont(new Font("Arial", Font.ITALIC, 10));
         txtRfc.setLabelError(lblErrorRfc);
         panel.add(lblErrorRfc, gbc);
+
+        // ===== USUARIO (LOGIN) =====
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
+        panel.add(new JLabel("Usuario (Login):"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        txtUsuario = new ValidadorSwing(20);
+        txtUsuario.setValidador(Validador::validarUsuario);
+        txtUsuario.setObligatorio(false);
+        txtUsuario.setToolTipText("Dejar en blanco si el cliente no tendrá login");
+        panel.add(txtUsuario, gbc);
+
+        gbc.gridx = 1; gbc.gridy = ++row;
+        lblErrorUsuario = new JLabel();
+        lblErrorUsuario.setFont(new Font("Arial", Font.ITALIC, 10));
+        txtUsuario.setLabelError(lblErrorUsuario);
+        panel.add(lblErrorUsuario, gbc);
+
+        // ===== CONTRASEÑA =====
+        gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
+        String passLabel = (cliente == null) ? "Contraseña:" : "Contraseña (nueva):";
+        panel.add(new JLabel(passLabel), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        txtContrasena = new JPasswordField(20);
+        txtContrasena.setToolTipText("Dejar en blanco para no crear/modificar la contraseña");
+        panel.add(txtContrasena, gbc);
+
+        gbc.gridx = 1; gbc.gridy = ++row;
+        lblErrorPassword = new JLabel();
+        lblErrorPassword.setFont(new Font("Arial", Font.ITALIC, 10));
+        lblErrorPassword.setForeground(Color.RED);
+        panel.add(lblErrorPassword, gbc);
 
         // ===== DIRECCIÓN =====
         gbc.gridx = 0; gbc.gridy = ++row; gbc.weightx = 0.0;
@@ -176,6 +202,11 @@ public class ClienteFormDialog extends JDialog {
         txtEmail.setText(cliente.getEmail());
         txtRfc.setText(cliente.getRfc());
         txtDireccion.setText(cliente.getDireccion());
+
+        if (cliente.getUsuario() != null) {
+            txtUsuario.setText(cliente.getUsuario());
+        }
+        // (No precargamos la contraseña por seguridad)
     }
 
     private void guardar() {
@@ -186,24 +217,67 @@ public class ClienteFormDialog extends JDialog {
         valido &= txtTelefono.validar();
         valido &= txtEmail.validar();
         valido &= txtRfc.validar();
+        valido &= txtUsuario.validar(); // Validar el nuevo campo
+
+        String usuario = txtUsuario.getTextoNormalizado();
+        String password = new String(txtContrasena.getPassword());
+
+        lblErrorPassword.setText("");
+        if (lblErrorUsuario != null) {
+            lblErrorUsuario.setText("");
+            txtUsuario.setLabelError(lblErrorUsuario);
+        }
+
+        if (!usuario.isEmpty() && password.isEmpty()) {
+            // Error: Puso usuario pero no contraseña
+            // Solo es error si es un cliente NUEVO, o si es un cliente existente SIN usuario previo
+            if (cliente == null || (cliente.getUsuario() == null || cliente.getUsuario().isEmpty())) {
+                valido = false;
+                lblErrorPassword.setText("Si define un usuario, la contraseña es obligatoria");
+            }
+            // Si está editando y ya tenía usuario, no es obligatorio cambiar la pass
+
+        } else if (usuario.isEmpty() && !password.isEmpty()) {
+            // Error: Puso contraseña pero no usuario
+            valido = false;
+            // Forzar el error de validación en el campo de usuario
+            txtUsuario.setObligatorio(true);
+            txtUsuario.validar();
+            txtUsuario.setObligatorio(false); // Devolverlo a su estado normal
+            if (lblErrorUsuario != null) {
+                lblErrorUsuario.setText("Si define una contraseña, el usuario es obligatorio");
+            }
+
+        } else if (!password.isEmpty()) {
+            // Validar fortaleza de la contraseña
+            String errorPass = Validador.validarPassword(password);
+            if (errorPass != null) {
+                valido = false;
+                lblErrorPassword.setText(errorPass);
+            }
+        }
 
         if (!valido) {
             JOptionPane.showMessageDialog(this,
-                    "Por favor corrija los errores marcados en rojo antes de guardar.",
+                    "Por favor corrija los errores marcados.",
                     "Errores de Validación",
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
+
         Cliente c = (cliente == null) ? new Cliente() : this.cliente;
 
         c.setNombre(Validador.normalizarNombre(txtNombre.getTextoNormalizado()));
         c.setApellido(Validador.normalizarNombre(txtApellido.getTextoNormalizado()));
         c.setTelefono(Validador.normalizarTelefono(txtTelefono.getTextoNormalizado()));
-        c.setEmail(txtEmail.getTextoNormalizado().toLowerCase()); // Email en minúsculas
+        c.setEmail(txtEmail.getTextoNormalizado().toLowerCase());
         c.setDireccion(txtDireccion.getText().trim());
 
         String rfc = txtRfc.getTextoNormalizado();
         c.setRfc(rfc.isEmpty() ? null : Validador.normalizarRfc(rfc));
+
+        c.setUsuario(usuario.isEmpty() ? null : usuario);
+        c.setContraseña(password.isEmpty() ? null : password); // Pasa la contraseña en *plano* al DAO
 
         boolean exito;
         if (cliente == null) {
@@ -221,7 +295,7 @@ public class ClienteFormDialog extends JDialog {
             dispose();
         } else {
             JOptionPane.showMessageDialog(this,
-                    "Error al guardar el cliente. Verifique que el email no esté duplicado.",
+                    "Error al guardar el cliente. Verifique que el email o usuario no estén duplicados.",
                     "Error de Base de Datos",
                     JOptionPane.ERROR_MESSAGE);
         }

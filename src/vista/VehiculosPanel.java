@@ -5,6 +5,7 @@ import modelo.Vehiculo;
 import util.FiltrosPanel;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.net.URL;
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.stream.Collectors;
 
 /**
  * Panel para el CRUD (Gestión) de Vehículos (Inventario).
- * ✅ MEJORADO: Con búsqueda avanzada y filtros
+ *  Con búsqueda avanzada y filtros
  */
 public class VehiculosPanel extends JPanel {
     private final VehiculoControlador controlador;
@@ -48,11 +49,21 @@ public class VehiculosPanel extends JPanel {
             public boolean isCellEditable(int row, int col) { return false; }
         };
         tabla = new JTable(modeloTabla);
+        tabla.setFillsViewportHeight(true);
+        tabla.setRowHeight(28);
+        tabla.setGridColor(new Color(220, 220, 220));
+        tabla.setIntercellSpacing(new Dimension(0, 0));
+
+        JTableHeader header = tabla.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setPreferredSize(new Dimension(100, 35));
+        header.setBackground(new Color(52, 73, 94));
+        header.setForeground(Color.WHITE);
+        header.setReorderingAllowed(false);
+
+        tabla.setDefaultRenderer(Object.class, new util.EstiloTabla());
         tabla.getColumnModel().getColumn(0).setMinWidth(0);
         tabla.getColumnModel().getColumn(0).setMaxWidth(0);
-        tabla.setRowHeight(25);
-        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
 
         // ===== IMAGEN PREVIEW =====
         JPanel panelImagen = new JPanel(new BorderLayout());
@@ -95,9 +106,9 @@ public class VehiculosPanel extends JPanel {
             JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
             panelBotones.setBackground(new Color(236, 240, 241));
 
-            btnAgregar = crearBoton("➕ Agregar Vehículo", new Color(46, 204, 113));
-            btnEditar = crearBoton("✏️ Editar", new Color(52, 152, 219));
-            btnVendido = crearBoton("✅ Marcar Vendido", new Color(230, 126, 34));
+            btnAgregar = crearBoton("Agregar Vehículo", new Color(46, 204, 113));
+            btnEditar = crearBoton(" Editar", new Color(52, 152, 219));
+            btnVendido = crearBoton(" Marcar Vendido", new Color(230, 126, 34));
 
             panelBotones.add(btnAgregar);
             panelBotones.add(btnEditar);
@@ -110,7 +121,7 @@ public class VehiculosPanel extends JPanel {
         } else {
             JPanel panelSur = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             panelSur.setBackground(new Color(236, 240, 241));
-            btnRefrescar = crearBoton("🔄 Refrescar Catálogo", new Color(149, 165, 166));
+            btnRefrescar = crearBoton(" Refrescar Catálogo", new Color(149, 165, 166));
             btnRefrescar.addActionListener(e -> cargarVehiculos());
             panelSur.add(btnRefrescar);
             add(panelSur, BorderLayout.SOUTH);
@@ -120,7 +131,7 @@ public class VehiculosPanel extends JPanel {
     }
 
     /**
-     * ✅ NUEVO: Crea panel con búsqueda y filtros avanzados
+     * Crea panel con búsqueda y filtros avanzados
      */
     private JPanel crearPanelBusqueda() {
         JPanel panelPrincipal = new JPanel(new BorderLayout());
@@ -179,7 +190,7 @@ public class VehiculosPanel extends JPanel {
         panelFiltros.add(new JSeparator(SwingConstants.VERTICAL));
 
         // Botón limpiar filtros
-        JButton btnLimpiarFiltros = new JButton("🗑️ Limpiar Filtros");
+        JButton btnLimpiarFiltros = new JButton(" Limpiar Filtros");
         btnLimpiarFiltros.setFont(new Font("Segoe UI", Font.BOLD, 11));
         btnLimpiarFiltros.setBackground(new Color(231, 76, 60));
         btnLimpiarFiltros.setForeground(Color.WHITE);

@@ -9,7 +9,10 @@ import javax.swing.SwingWorker;
 import util.PDFReporte;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -18,8 +21,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-
 
 /**
  * Panel para mostrar el reporte de ventas.
@@ -33,7 +34,7 @@ public class ReportesPanel extends JPanel {
     private final JLabel lblTotalVentas;
     private final JLabel lblTicketPromedio;
     private List<Venta> listaVentas;
-
+    private JComboBox<String> cbFormato;
     // Componentes de filtro y búsqueda
     private JDateChooser dateDesde;
     private JDateChooser dateHasta;
@@ -50,7 +51,7 @@ public class ReportesPanel extends JPanel {
         // ===== PANEL SUPERIOR (TÍTULO Y ESTADÍSTICAS) =====
         JPanel panelNorte = new JPanel(new BorderLayout());
 
-        JLabel titulo = new JLabel("📊 Reporte General de Ventas", SwingConstants.CENTER);
+        JLabel titulo = new JLabel("Reporte General de Ventas", SwingConstants.CENTER);
         titulo.setFont(new Font("Segoe UI", Font.BOLD, 20));
         titulo.setBorder(BorderFactory.createEmptyBorder(15, 0, 10, 0));
 
@@ -71,11 +72,20 @@ public class ReportesPanel extends JPanel {
             }
         };
         tabla = new JTable(modeloTabla);
-        tabla.getColumnModel().getColumn(0).setMaxWidth(80);
-        tabla.setRowHeight(25);
-        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tabla.setFillsViewportHeight(true);
+        tabla.setRowHeight(28);
+        tabla.setGridColor(new Color(220, 220, 220));
+        tabla.setIntercellSpacing(new Dimension(0, 0));
 
+        JTableHeader header = tabla.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setPreferredSize(new Dimension(100, 35));
+        header.setBackground(new Color(52, 73, 94));
+        header.setForeground(Color.WHITE);
+        header.setReorderingAllowed(false);
+
+        tabla.setDefaultRenderer(Object.class, new util.EstiloTabla());
+        tabla.getColumnModel().getColumn(0).setMaxWidth(80);
         JScrollPane scrollPane = new JScrollPane(tabla);
         scrollPane.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
 
@@ -174,15 +184,15 @@ public class ReportesPanel extends JPanel {
         JPanel panel = new JPanel(new GridLayout(1, 4, 15, 0));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        panel.add(crearTarjeta("Ventas Hoy", new Color(52, 152, 219), "📅"));
-        panel.add(crearTarjeta("Ventas Este Mes", new Color(46, 204, 113), "📊"));
-        panel.add(crearTarjeta("Ventas Este Año", new Color(241, 196, 15), "📈"));
-        panel.add(crearTarjeta("Total Histórico", new Color(155, 89, 182), "💰"));
+        panel.add(crearTarjeta("Ventas Hoy", new Color(52, 152, 219)));
+        panel.add(crearTarjeta("Ventas Este Mes", new Color(46, 204, 113)));
+        panel.add(crearTarjeta("Ventas Este Año", new Color(241, 196, 15)));
+        panel.add(crearTarjeta("Total Histórico", new Color(155, 89, 182)));
 
         return panel;
     }
 
-    private JPanel crearTarjeta(String titulo, Color color, String emoji) {
+    private JPanel crearTarjeta(String titulo, Color color) {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBackground(color);
         panel.setBorder(BorderFactory.createCompoundBorder(
@@ -190,7 +200,7 @@ public class ReportesPanel extends JPanel {
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
 
-        JLabel lblEmoji = new JLabel(emoji, SwingConstants.CENTER);
+        JLabel lblEmoji = new JLabel(" ", SwingConstants.CENTER);
         lblEmoji.setFont(new Font("Segoe UI", Font.PLAIN, 24));
 
         JPanel panelTexto = getJPanel(titulo);
@@ -280,10 +290,9 @@ public class ReportesPanel extends JPanel {
 
         panelFiltros.add(new JSeparator(SwingConstants.VERTICAL));
         panelFiltros.add(new JLabel(" Formato:"));
-        JComboBox<String> cbFormato = new JComboBox<>(new String[]{"PDF", "Excel", "CSV"});
+        cbFormato = new JComboBox<>(new String[]{"PDF", "Excel", "CSV"});
         cbFormato.setPreferredSize(new Dimension(100, 25));
         panelFiltros.add(cbFormato);
-
         return panelPrincipal;
     }
 
@@ -304,18 +313,17 @@ public class ReportesPanel extends JPanel {
                     // Filtro de texto
                     boolean coincideTexto = busqueda.isEmpty() || coincideBusqueda(v, busqueda, filtroTexto);
 
-                    // Filtro de vendedor
-                    assert vendedorSeleccionado != null;
-                    boolean coincideVendedor = vendedorSeleccionado.equals("Todos") ||
+                    // Filtro de vendedor (¡CORREGIDO!)
+                    boolean coincideVendedor = (vendedorSeleccionado == null) ||
+                            vendedorSeleccionado.equals("Todos") ||
                             v.getNombreVendedor().equals(vendedorSeleccionado);
 
                     return coincideTexto && coincideVendedor;
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         actualizarTabla(resultado);
         actualizarTotales(resultado);
-
         tabla.getTableHeader().setToolTipText(
                 resultado.size() + " resultado(s) de " + listaVentas.size() + " total"
         );
@@ -344,11 +352,11 @@ public class ReportesPanel extends JPanel {
         boton.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
         boton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        boton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
+        boton.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent evt) {
                 boton.setBackground(color.brighter());
             }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
+            public void mouseExited(MouseEvent evt) {
                 boton.setBackground(color);
             }
         });
@@ -356,7 +364,7 @@ public class ReportesPanel extends JPanel {
         return boton;
     }
 
-    private void cargarReporte(java.sql.Date fechaInicio, java.sql.Date fechaFin) {
+    private void cargarReporte(Date fechaInicio, Date fechaFin) {
         setBotonesEnabled(false);
         lblTotalVendido.setText("Cargando reporte...");
         modeloTabla.setRowCount(0);
@@ -454,6 +462,10 @@ public class ReportesPanel extends JPanel {
             case "CSV":
                 fileChooser.setSelectedFile(new File("ReporteVentas.csv"));
                 break;
+            case null:
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + formatoSeleccionado);
         }
 
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -474,7 +486,7 @@ public class ReportesPanel extends JPanel {
             // Generar en hilo separado
             SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
                 @Override
-                protected Boolean doInBackground() throws Exception {
+                protected Boolean doInBackground() {
                     try {
                         // Obtener fechas para el reporte
                         String fechaInicioStr = dateDesde.getDate() != null
@@ -503,6 +515,10 @@ public class ReportesPanel extends JPanel {
                             case "CSV":
                                 generarCSV(listaVentas, fileToSave);
                                 break;
+                            case null:
+                                break;
+                            default:
+                                throw new IllegalStateException("Unexpected value: " + formatoSeleccionado);
                         }
                         return true;
 
@@ -543,7 +559,7 @@ public class ReportesPanel extends JPanel {
                         } else {
                             JOptionPane.showMessageDialog(
                                     ReportesPanel.this,
-                                    "❌ Error al generar el reporte",
+                                    " Error al generar el reporte",
                                     "Error de Exportación",
                                     JOptionPane.ERROR_MESSAGE
                             );
