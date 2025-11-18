@@ -43,7 +43,7 @@ public class GerentePanel extends JFrame {
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblTitulo.setForeground(Color.WHITE);
 
-        JLabel lblUsuario = new JLabel("👤 " + gerente.getNombre(), SwingConstants.RIGHT);
+        JLabel lblUsuario = new JLabel(" " + gerente.getNombre(), SwingConstants.RIGHT);
         lblUsuario.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         lblUsuario.setForeground(Color.WHITE);
 
@@ -215,8 +215,7 @@ public class GerentePanel extends JFrame {
 
         int colorIndex = 0;
         for (Component comp : componentes) {
-            if (comp instanceof JButton) {
-                JButton btn = (JButton) comp;
+            if (comp instanceof JButton btn) {
                 Color color = coloresOriginales[colorIndex % coloresOriginales.length];
 
                 btn.setBackground(color);

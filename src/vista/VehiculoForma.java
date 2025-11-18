@@ -67,7 +67,7 @@ public class VehiculoForma extends JDialog {
         this.modeloControlador = new ModeloControlador();
 
         setTitle(vehiculo == null ? "Agregar Nuevo Vehículo" : "Editar Vehículo");
-        setSize(800, 600); // Tamaño ajustado para 2 columnas
+        setSize(800, 600); // Tamaño 3ajustado para 2 columnas
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
         getContentPane().setBackground(Color.WHITE);

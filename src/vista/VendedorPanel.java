@@ -75,17 +75,13 @@ public class VendedorPanel extends JFrame {
 
         // Agregar botones al panel
         panelMenu.add(btnVentas);
-        panelMenu.add(Box.createRigidArea(new Dimension(0, 10))); // Espacio
+        panelMenu.add(Box.createRigidArea(new Dimension(0, 10)));
         panelMenu.add(btnCatalogo);
         panelMenu.add(Box.createRigidArea(new Dimension(0, 10)));
         panelMenu.add(btnClientes);
         panelMenu.add(Box.createRigidArea(new Dimension(0, 10)));
         panelMenu.add(btnMisVentas);
-
-        // Espacio flexible antes del botón de cerrar sesión
         panelMenu.add(Box.createVerticalGlue());
-
-        // Panel de estadísticas personales
         JPanel panelStats = crearPanelEstadisticas();
         panelMenu.add(panelStats);
         panelMenu.add(Box.createRigidArea(new Dimension(0, 20)));

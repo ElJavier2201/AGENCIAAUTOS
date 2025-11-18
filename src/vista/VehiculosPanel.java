@@ -35,7 +35,7 @@ public class VehiculosPanel extends JPanel {
         setLayout(new BorderLayout(0, 10));
 
         // ===== TÍTULO =====
-        JLabel titulo = new JLabel("🚗 Inventario de Vehículos", SwingConstants.CENTER);
+        JLabel titulo = new JLabel("Inventario de Vehículos", SwingConstants.CENTER);
         titulo.setFont(new Font("Segoe UI", Font.BOLD, 20));
         titulo.setBorder(BorderFactory.createEmptyBorder(15, 0, 10, 0));
         add(titulo, BorderLayout.NORTH);
@@ -204,14 +204,14 @@ public class VehiculosPanel extends JPanel {
     }
 
     /**
-     * ✅ NUEVO: Busca vehículos según texto y filtro
+     *  Busca vehículos según texto y filtro
      */
     private void buscarVehiculo(String textoBusqueda) {
         aplicarFiltros();
     }
 
     /**
-     * ✅ NUEVO: Aplica todos los filtros combinados
+     *  Aplica todos los filtros combinados
      */
     private void aplicarFiltros() {
         if (listaVehiculos == null || listaVehiculos.isEmpty()) {
@@ -401,7 +401,6 @@ public class VehiculosPanel extends JPanel {
         if (btnRefrescar != null) btnRefrescar.setEnabled(enabled);
     }
 
-    // --- Métodos de Gerente sin cambios ---
     private void abrirFormulario(Vehiculo vehiculo) {
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(this);
         VehiculoForma dialog = new VehiculoForma(owner, vehiculo);

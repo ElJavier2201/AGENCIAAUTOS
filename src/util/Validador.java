@@ -37,7 +37,7 @@ public class Validador {
 
     // VIN (Vehicle Identification Number): 17 caracteres alfanuméricos
     private static final Pattern VIN_PATTERN = Pattern.compile(
-            "^[A-HJ-NPR-Z0-9]{17}$"
+            "^[A-HJ-NP-Z0-9]{17}$"
     );
 
     // Código Postal México: 5 dígitos
@@ -232,14 +232,9 @@ public class Validador {
         if (vin == null || vin.trim().isEmpty()) {
             return false;
         }
-
         String vinLimpio = vin.trim().toUpperCase();
 
-        // No debe contener I, O, Q (confusión con 1, 0)
-        if (vinLimpio.contains("I") || vinLimpio.contains("O") || vinLimpio.contains("Q")) {
-            return false;
-        }
-
+        // La nueva regex VIN_PATTERN ya se encarga de excluir I, O y Q
         return VIN_PATTERN.matcher(vinLimpio).matches();
     }
 

@@ -30,7 +30,7 @@ public class ClientesPanel extends JPanel {
         setLayout(new BorderLayout(0, 10));
 
         // ===== TÍTULO =====
-        JLabel titulo = new JLabel("👥 Gestión de Clientes", SwingConstants.CENTER);
+        JLabel titulo = new JLabel("Gestión de Clientes", SwingConstants.CENTER);
         titulo.setFont(new Font("Segoe UI", Font.BOLD, 20));
         titulo.setBorder(BorderFactory.createEmptyBorder(15, 0, 10, 0));
         add(titulo, BorderLayout.NORTH);
@@ -89,7 +89,7 @@ public class ClientesPanel extends JPanel {
         panelBotones.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
 
         btnAgregar = crearBoton("Agregar Cliente", new Color(46, 204, 113));
-        btnEditar = crearBoton("✏Editar Seleccionado", new Color(52, 152, 219));
+        btnEditar = crearBoton("Editar Seleccionado", new Color(52, 152, 219));
         JButton btnRefrescar = crearBoton("Refrescar", new Color(149, 165, 166));
 
         panelBotones.add(btnAgregar);
@@ -264,7 +264,6 @@ public class ClientesPanel extends JPanel {
             return;
         }
 
-        // Obtener el ID real (la tabla puede estar ordenada/filtrada)
         int filaModelo = tabla.convertRowIndexToModel(fila);
         int idCliente = (int) modeloTabla.getValueAt(filaModelo, 0);
 

@@ -16,7 +16,6 @@ import java.util.Objects;
 
 /**
  * Ventana de inicio de sesión con diseño moderno
- * --- VISUALMENTE MEJORADO ---
  */
 public class LoginPanel extends JFrame {
     private final JTextField txtUsuario;
@@ -82,7 +81,7 @@ public class LoginPanel extends JFrame {
 
         // Campo Usuario
         gbc.gridy++;
-        JLabel lblUsuario = new JLabel("👤 Usuario");
+        JLabel lblUsuario = new JLabel("Usuario");
         lblUsuario.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblUsuario.setForeground(COLOR_TEXTO_PRINCIPAL);
         panelDerecho.add(lblUsuario, gbc);
@@ -118,7 +117,7 @@ public class LoginPanel extends JFrame {
         // Campo Contraseña
         gbc.gridy++;
         gbc.insets = new Insets(20, 0, 10, 0);
-        JLabel lblContrasena = new JLabel("🔒 Contraseña");
+        JLabel lblContrasena = new JLabel(" Contraseña");
         lblContrasena.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblContrasena.setForeground(COLOR_TEXTO_PRINCIPAL);
         panelDerecho.add(lblContrasena, gbc);
@@ -153,7 +152,6 @@ public class LoginPanel extends JFrame {
 
         panelDerecho.add(txtContrasena, gbc);
 
-        // Checkbox mostrar contraseña
         gbc.gridy++;
         gbc.insets = new Insets(5, 0, 20, 0);
         chkMostrarPassword = new JCheckBox("Mostrar contraseña");
@@ -239,7 +237,6 @@ public class LoginPanel extends JFrame {
         lblSlogan.setForeground(new Color(236, 240, 241));
         panel.add(lblSlogan, gbc);
 
-        // Características
         gbc.gridy++;
         gbc.insets = new Insets(40, 0, 10, 0);
         JPanel panelCaracteristicas = new JPanel();

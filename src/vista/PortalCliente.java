@@ -13,7 +13,7 @@ public class PortalCliente extends JFrame {
     public PortalCliente(Cliente cliente) { // Permitir que cliente sea NULL
 
         setTitle("Portal de Cliente - " + cliente.getNombre());
-        setSize(924, 768);
+        setSize(1024, 668);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -34,20 +34,13 @@ public class PortalCliente extends JFrame {
 
         tabbedPane.addTab("Ver Catálogo", new VehiculosPanel(false));
 
-        if (cliente != null) {
-            tabbedPane.addTab("Mi Estado de Cuenta", new ClienteEstadoCuentaPanel(cliente));
-            tabbedPane.addTab("Mis Compras (Próximamente)", new JPanel());
+        tabbedPane.addTab("Mi Estado de Cuenta", new ClienteEstadoCuentaPanel(cliente));
+        tabbedPane.addTab("Mis Compras (Próximamente)", new JPanel());
 
-            // Configurar bienvenida y botones
-            lblBienvenida.setText("Bienvenido, " + cliente.getNombre() + " " + cliente.getApellido());
-            btnIniciarSesion.setVisible(false);
-            btnCerrarSesion.setVisible(true);
-        } else {
-            // --- MODO INVITADO ---
-            lblBienvenida.setText("Bienvenido, Invitado.");
-            btnIniciarSesion.setVisible(true);
-            btnCerrarSesion.setVisible(false);
-        }
+        // Configurar bienvenida y botones
+        lblBienvenida.setText("Bienvenido, " + cliente.getNombre() + " " + cliente.getApellido());
+        btnIniciarSesion.setVisible(false);
+        btnCerrarSesion.setVisible(true);
 
         add(tabbedPane, BorderLayout.CENTER);
 
